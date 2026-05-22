@@ -7,7 +7,7 @@ spec:
         admission.datadoghq.com/enabled: "true"
       annotations:
         admission.datadoghq.com/enabled: "true"
-        admission.datadoghq.com/dotnet-lib.version: "v2"
+        admission.datadoghq.com/dotnet-lib.version: "v3"
     spec:
       containers:
         - name: gorrashop-backend

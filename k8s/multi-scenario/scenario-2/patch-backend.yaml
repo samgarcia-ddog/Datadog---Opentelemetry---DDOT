@@ -26,5 +26,9 @@ spec:
               value: "1.0"
             - name: DD_PROFILING_ENABLED
               value: "true"
+            - name: DD_GIT_COMMIT_SHA
+              value: "879150c2b0500c20335c69e6756680ab200ae731"
+            - name: DD_GIT_REPOSITORY_URL
+              value: "https://github.com/samgarcia-ddog/Datadog---Opentelemetry---DDOT"
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "deployment.environment=scenario-2-ddsdk-ddot,scenario=2,pipeline=dd-sdk-ddot"

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-frontend
+  namespace: gorrashop
+  labels:
+    app: gorrashop-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gorrashop-frontend
+  template:
+    metadata:
+      labels:
+        app: gorrashop-frontend
+      annotations:
+        ad.datadoghq.com/gorrashop-frontend.logs: '[{"source":"nodejs","service":"gorrashop-frontend"}]'
+    spec:
+      nodeSelector:
+        workload-type: application
+      containers:
+        - name: gorrashop-frontend
+          image: ${ACR_LOGIN_SERVER}/gorrashop-frontend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            # La API se llama internamente desde el servidor Next.js (SSR)
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://gorrashop-backend:8080"
+            # OTel — sobreescrito por los patches de cada escenario
+            - name: OTEL_SERVICE_NAME
+              value: "gorrashop-frontend"
+            - name: OTEL_SERVICE_VERSION
+              value: "1.0.0"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=lab"
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "256Mi"
+            limits:
+              cpu:    "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20

@@ -1,0 +1,34 @@
+spec:
+  template:
+    metadata:
+      labels:
+        scenario: "4"
+        pipeline: dd-sdk
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        admission.datadoghq.com/enabled: "true"
+        admission.datadoghq.com/js-lib.version: "v5"
+    spec:
+      containers:
+        - name: gorrashop-frontend
+          env:
+            - name: OBSERVABILITY_ENABLED
+              value: "false"
+            - name: NEXT_PUBLIC_OBSERVABILITY_ENABLED
+              value: "false"
+            - name: DD_RUM_ENABLED
+              value: "true"
+            - name: DD_RUM_APPLICATION_ID
+              value: "9f61ea6a-521f-47d2-a889-c432c20c2809"
+            - name: DD_RUM_CLIENT_TOKEN
+              value: "pub3ff63f3b479550cca4f2daac63d724de"
+            - name: DD_ENV
+              value: "scenario-4-sdk"
+            - name: DD_SERVICE
+              value: "gorrashop-frontend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TAGS
+              value: "scenario:4,pipeline:dd-sdk"
+            - name: DD_TRACE_SAMPLE_RATE
+              value: "1.0"

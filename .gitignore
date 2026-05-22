@@ -1,0 +1,47 @@
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/terraform.tfvars
+!**/terraform.tfvars.example
+**/override.tf
+**/.terraformrc
+
+# .NET
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+**/.vs/
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# Node.js / Next.js
+**/node_modules/
+**/.next/
+**/out/
+**/.env
+**/.env.local
+**/.env.production.local
+**/.env.development.local
+
+# Docker
+**/.dockerignore
+
+# Secrets & keys
+**/secrets/
+**/*-secret.yaml
+!**/*-secret.yaml.template
+**/*.pem
+**/*.key
+**/*.crt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/settings.json
+.idea/
+*.swp

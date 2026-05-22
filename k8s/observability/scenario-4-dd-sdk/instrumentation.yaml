@@ -1,0 +1,36 @@
+# Recurso Instrumentation de Datadog — le dice al Admission Controller
+# cómo inyectar el tracer en los pods del namespace gorrashop
+#
+# Ref: https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/
+apiVersion: datadoghq.com/v1alpha1
+kind: Instrumentation
+metadata:
+  name: gorrashop-instrumentation
+  namespace: gorrashop
+spec:
+  # Etiquetas globales inyectadas en todos los spans
+  env:
+    - name: DD_ENV
+      value: "lab"
+    - name: DD_VERSION
+      value: "1.0.0"
+    # Deshabilitar OTel SDK (ya que usaremos el tracer de DD)
+    - name: OBSERVABILITY_ENABLED
+      value: "false"
+
+  # Auto-instrumentación para .NET
+  dotnet:
+    image: gcr.io/datadoghq/dd-lib-dotnet-init:v2   # Versión estable
+    env:
+      - name: DD_TRACE_SAMPLE_RATE
+        value: "1.0"  # 100% en lab; reducir en producción
+
+  # Auto-instrumentación para Node.js (frontend Next.js)
+  nodejs:
+    image: gcr.io/datadoghq/dd-lib-js-init:v5
+    env:
+      - name: DD_TRACE_SAMPLE_RATE
+        value: "1.0"
+
+  # Selector: aplica a todos los pods con esta anotación
+  # Los pods deben tener: admission.datadoghq.com/enabled: "true"

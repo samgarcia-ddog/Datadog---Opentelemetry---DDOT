@@ -1,0 +1,98 @@
+datadog:
+  site: "datadoghq.com"
+  apiKeyExistingSecret: "datadog-secret"
+
+  # ── Identificación del clúster ──────────────────────────────
+  clusterName: "<NOMBRE_DEL_CLUSTER_AKS>"  # <-- Cambiar por el nombre de tu clúster
+
+  # ── Kubelet (requerido en AKS) ──────────────────────────────
+  kubelet:
+    host:
+      valueFrom:
+        fieldRef:
+          fieldPath: "spec.nodeName"
+    tlsVerify: false  # Usar si el cert del kubelet no está en la ruta estándar de AKS
+
+  # ── Tags globales ───────────────────────────────────────────
+  tags:
+    - "env:prod"             # Cambiar según ambiente: dev / staging / prod
+
+  # ── Orquestación (Infrastructure List, Live Containers) ────
+  orchestratorExplorer:
+    enabled: true
+
+  collectEvents: true        # Eventos de Kubernetes en el Event Explorer
+
+  # ==========================================================
+  # PILAR 1 — MÉTRICAS
+  # Habilitado por defecto. orchestratorExplorer + NPM cubren
+  # métricas de nodos, pods, deployments, network, etc.
+  # ==========================================================
+
+  # Network Performance Monitoring (NPM) — tráfico entre servicios
+  serviceMonitoring:
+    enabled: true
+
+  # ==========================================================
+  # PILAR 2 — LOGS
+  # ==========================================================
+  logs:
+    enabled: true
+    containerCollectAll: true   # Recolecta logs de todos los contenedores
+
+  # ==========================================================
+  # PILAR 3 — TRAZAS (APM)
+  # Auto-instrumentación vía Admission Controller (sin cambiar código)
+  # ==========================================================
+  apm:
+    instrumentation:
+      enabled: true
+      targets:
+        - name: "default-target"
+          ddTraceVersions:
+            java:   "1"
+            python: "3"
+            js:     "5"
+            php:    "1"
+            dotnet: "3"
+
+  # ==========================================================
+  # PROCESOS
+  # Visibilidad de procesos en tiempo real por contenedor/nodo
+  # ==========================================================
+  processAgent:
+    processCollection: true
+
+# ── Node Agent ───────────────────────────────────────────────
+agents:
+  enabled: true
+  rbac:
+    create: true
+  # Tolerations para nodos de sistema y nodos spot en AKS
+  tolerations:
+    - key: "CriticalAddonsOnly"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "kubernetes.azure.com/scalesetpriority"
+      value: "spot"
+      operator: "Equal"
+      effect: "NoSchedule"
+
+# ── Cluster Agent ────────────────────────────────────────────
+clusterAgent:
+  enabled: true
+  rbac:
+    create: true
+  tolerations:
+    - key: "CriticalAddonsOnly"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "kubernetes.azure.com/scalesetpriority"
+      value: "spot"
+      operator: "Equal"
+      effect: "NoSchedule"
+
+# ── Provider AKS ─────────────────────────────────────────────
+providers:
+  aks:
+    enabled: true

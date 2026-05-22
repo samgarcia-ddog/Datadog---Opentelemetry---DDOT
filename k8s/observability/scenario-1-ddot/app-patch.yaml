@@ -1,0 +1,47 @@
+# Patch para los deployments — apunta OTLP al DDOT Collector
+# Se aplica con: kubectl apply -f app-patch.yaml -n gorrashop
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-backend
+  namespace: gorrashop
+spec:
+  template:
+    spec:
+      containers:
+        - name: gorrashop-backend
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://ddot-collector.observability:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: DD_ENV
+              value: "lab"
+            - name: DD_SERVICE
+              value: "gorrashop-backend"
+            - name: DD_VERSION
+              value: "1.0.0"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-frontend
+  namespace: gorrashop
+spec:
+  template:
+    spec:
+      containers:
+        - name: gorrashop-frontend
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://ddot-collector.observability:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: DD_ENV
+              value: "lab"
+            - name: DD_SERVICE
+              value: "gorrashop-frontend"
+            - name: DD_VERSION
+              value: "1.0.0"

@@ -1,0 +1,65 @@
+# Helm values para el Datadog Agent con OTLP receiver habilitado
+# Chart: datadog/datadog
+# Ref: https://docs.datadoghq.com/opentelemetry/interoperability/otlp_ingest_in_the_agent/
+
+datadog:
+  apiKeyExistingSecret: datadog-secret
+  apiKeyExistingSecretKey: api-key
+
+  site: datadoghq.com   # Cambiar a datadoghq.eu si usas EU
+
+  # Habilitar OTLP receiver en el Agent
+  otlp:
+    receiver:
+      protocols:
+        grpc:
+          enabled: true
+          endpoint: 0.0.0.0:4317
+        http:
+          enabled: true
+          endpoint: 0.0.0.0:4318
+
+  # APM (trazas)
+  apm:
+    enabled: true
+    portEnabled: true
+
+  # Logs desde archivos del contenedor
+  logs:
+    enabled: true
+    containerCollectAll: true
+
+  # Métricas de K8s (kubelet, etc.)
+  kubelet:
+    tlsVerify: false
+
+  # Etiquetas globales para todos los datos
+  tags:
+    - "env:lab"
+    - "project:gorrashop"
+
+  # Correlación de trazas con logs
+  apm:
+    logInjection: true
+
+agents:
+  # DaemonSet — un Agent por nodo
+  image:
+    tagSuffix: ""
+
+  tolerations:
+    - operator: Exists
+
+clusterAgent:
+  enabled: true
+  replicas: 1
+  admissionController:
+    enabled: false   # Lo habilitamos en escenario 4
+
+resources:
+  requests:
+    cpu:    200m
+    memory: 256Mi
+  limits:
+    cpu:    1000m
+    memory: 512Mi

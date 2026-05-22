@@ -1,0 +1,37 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-backend
+  namespace: gorrashop
+spec:
+  template:
+    spec:
+      containers:
+        - name: gorrashop-backend
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector-pure.observability:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: OBSERVABILITY_ENABLED
+              value: "true"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-frontend
+  namespace: gorrashop
+spec:
+  template:
+    spec:
+      containers:
+        - name: gorrashop-frontend
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector-pure.observability:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: OBSERVABILITY_ENABLED
+              value: "true"

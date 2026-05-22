@@ -1,0 +1,65 @@
+# Los valores ${ACR_LOGIN_SERVER} se sustituyen via envsubst en el script de deploy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-backend
+  namespace: gorrashop
+  labels:
+    app: gorrashop-backend
+    version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gorrashop-backend
+  template:
+    metadata:
+      labels:
+        app: gorrashop-backend
+        version: "1.0.0"
+      annotations:
+        # Anotaciones para Datadog APM (usadas en escenarios 3 y 4)
+        ad.datadoghq.com/gorrashop-backend.logs: '[{"source":"dotnet","service":"gorrashop-backend"}]'
+    spec:
+      nodeSelector:
+        workload-type: application
+      containers:
+        - name: gorrashop-backend
+          image: ${ACR_LOGIN_SERVER}/gorrashop-backend:latest
+          ports:
+            - containerPort: 8080
+          env:
+            # Base de datos y cache
+            - name: ConnectionStrings__Postgres
+              value: "Host=postgresql;Port=5432;Database=gorrashop;Username=gorrashop;Password=gorrashop123"
+            - name: ConnectionStrings__Redis
+              value: "redis-master:6379"
+            # OTel — sobreescrito por los patches de cada escenario
+            - name: OTEL_SERVICE_NAME
+              value: "gorrashop-backend"
+            - name: OTEL_SERVICE_VERSION
+              value: "1.0.0"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=lab"
+            # OTEL_EXPORTER_OTLP_ENDPOINT se define en cada escenario
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "256Mi"
+            limits:
+              cpu:    "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20

@@ -1,0 +1,46 @@
+# DDOT OTel Collector config — runs embedded in the Datadog Agent
+# Used by S1: OTel SDK → DDOT Collector → Datadog
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4327
+      http:
+        endpoint: 0.0.0.0:4328
+
+processors:
+  batch:
+    send_batch_size: 1000
+    timeout: 10s
+
+  infraattributes:
+    cardinality: 2
+
+connectors:
+  datadog/connector:
+
+exporters:
+  datadog:
+    api:
+      key: ${env:DD_API_KEY}
+      site: datadoghq.com
+    traces:
+      span_name_as_resource_name: true
+    metrics:
+      histograms:
+        mode: distributions
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [infraattributes, batch]
+      exporters: [datadog/connector, datadog]
+    metrics:
+      receivers: [otlp, datadog/connector]
+      processors: [infraattributes, batch]
+      exporters: [datadog]
+    logs:
+      receivers: [otlp]
+      processors: [infraattributes, batch]
+      exporters: [datadog]

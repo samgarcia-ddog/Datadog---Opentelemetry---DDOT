@@ -1,0 +1,24 @@
+spec:
+  template:
+    metadata:
+      labels:
+        scenario: "5"
+        pipeline: otel-collector-oss
+    spec:
+      containers:
+        - name: gorrashop-backend
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: DD_ENV
+              value: "scenario-5-otel-oss"
+            - name: DD_SERVICE
+              value: "gorrashop-backend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TAGS
+              value: "scenario:5,pipeline:otel-collector-oss"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=scenario-5-otel-oss,scenario=5,pipeline=otel-collector-oss"

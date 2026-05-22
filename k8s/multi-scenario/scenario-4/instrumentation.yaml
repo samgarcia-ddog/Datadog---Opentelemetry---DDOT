@@ -1,0 +1,26 @@
+# Instrumentation CRD para auto-instrumentación en namespace gorrashop-s4
+apiVersion: datadoghq.com/v1alpha1
+kind: Instrumentation
+metadata:
+  name: gorrashop-instrumentation
+  namespace: gorrashop-s4
+spec:
+  env:
+    - name: DD_ENV
+      value: "scenario-4-sdk"
+    - name: DD_VERSION
+      value: "1.0.0"
+    - name: OBSERVABILITY_ENABLED
+      value: "false"
+
+  dotnet:
+    image: gcr.io/datadoghq/dd-lib-dotnet-init:v2
+    env:
+      - name: DD_TRACE_SAMPLE_RATE
+        value: "1.0"
+
+  nodejs:
+    image: gcr.io/datadoghq/dd-lib-js-init:v5
+    env:
+      - name: DD_TRACE_SAMPLE_RATE
+        value: "1.0"

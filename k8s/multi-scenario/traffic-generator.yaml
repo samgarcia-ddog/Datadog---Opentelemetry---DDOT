@@ -1,0 +1,69 @@
+# Traffic generator — simula flujo e-commerce completo cada 5s por escenario
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic-generator
+  template:
+    metadata:
+      labels:
+        app: traffic-generator
+    spec:
+      containers:
+        - name: traffic-generator
+          image: curlimages/curl:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              SESSION="load-test-$$"
+              CYCLE=0
+              while true; do
+                CYCLE=$((CYCLE + 1))
+                for ns in gorrashop-s1 gorrashop-s2 gorrashop-s3 gorrashop-s4 gorrashop-s5; do
+                  API="http://gorrashop-backend.${ns}.svc.cluster.local:8080"
+                  FE="http://gorrashop-frontend.${ns}.svc.cluster.local:3000"
+
+                  # Frontend
+                  curl -s -o /dev/null -w "${ns} frontend: %{http_code}\n" "${FE}/" --max-time 5 || true
+
+                  # Products (PostgreSQL)
+                  curl -s -o /dev/null -w "${ns} products: %{http_code}\n" "${API}/api/products" --max-time 5 || true
+                  curl -s -o /dev/null -w "${ns} featured: %{http_code}\n" "${API}/api/products/featured" --max-time 5 || true
+                  curl -s -o /dev/null -w "${ns} categories: %{http_code}\n" "${API}/api/products/categories" --max-time 5 || true
+                  curl -s -o /dev/null -w "${ns} product/1: %{http_code}\n" "${API}/api/products/1" --max-time 5 || true
+
+                  # Cart (Redis)
+                  CART_SESSION="${SESSION}-${ns}"
+                  curl -s -o /dev/null -w "${ns} cart-add: %{http_code}\n" \
+                    -X POST -H "Content-Type: application/json" \
+                    -d "{\"productId\":$((CYCLE % 20 + 1)),\"quantity\":1}" \
+                    "${API}/api/cart/${CART_SESSION}/add" --max-time 5 || true
+                  curl -s -o /dev/null -w "${ns} cart-get: %{http_code}\n" \
+                    "${API}/api/cart/${CART_SESSION}" --max-time 5 || true
+
+                  # Checkout cada 10 ciclos (Redis + PostgreSQL)
+                  if [ $((CYCLE % 10)) -eq 0 ]; then
+                    curl -s -o /dev/null -w "${ns} checkout: %{http_code}\n" \
+                      -X POST -H "Content-Type: application/json" \
+                      -d "{\"sessionId\":\"${CART_SESSION}\",\"customerEmail\":\"test@gorrashop.com\",\"customerName\":\"Load Test\",\"address\":\"Test Address 123\"}" \
+                      "${API}/api/orders/checkout" --max-time 5 || true
+                  fi
+
+                  # Orders (PostgreSQL)
+                  curl -s -o /dev/null -w "${ns} orders: %{http_code}\n" "${API}/api/orders" --max-time 5 || true
+                done
+                echo "--- cycle ${CYCLE} done $(date) ---"
+                sleep 5
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 32Mi

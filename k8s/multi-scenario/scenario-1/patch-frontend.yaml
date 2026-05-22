@@ -1,0 +1,28 @@
+spec:
+  template:
+    metadata:
+      labels:
+        scenario: "1"
+        pipeline: ddot-collector
+    spec:
+      containers:
+        - name: gorrashop-frontend
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://$(HOST_IP):4327"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: DD_ENV
+              value: "scenario-1-ddot"
+            - name: DD_SERVICE
+              value: "gorrashop-frontend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TAGS
+              value: "scenario:1,pipeline:ddot-collector"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=scenario-1-ddot,scenario=1,pipeline=ddot-collector"

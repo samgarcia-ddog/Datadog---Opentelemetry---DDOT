@@ -1,0 +1,954 @@
+{
+  "title": "ECS Services — Latency & Infrastructure",
+  "description": "Combined dashboard: APM latency (p50/p75/p95/p99), throughput, error rate + ECS infrastructure health (tasks, containers, CPU, memory, network). Filter using template variables.",
+  "layout_type": "ordered",
+  "reflow_type": "fixed",
+  "template_variables": [
+    { "name": "env",         "prefix": "env",         "available_values": [], "default": "*" },
+    { "name": "cluster",     "prefix": "clustername",  "available_values": [], "default": "*" },
+    { "name": "service",     "prefix": "servicename",  "available_values": [], "default": "*" },
+    { "name": "task_family", "prefix": "task_family",  "available_values": [], "default": "*" }
+  ],
+  "widgets": [
+
+    {
+      "definition": {
+        "title": "Summary",
+        "background_color": "vivid_green",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "title": "CPU %",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1"}],
+                "conditional_formats": [
+                  { "palette": "white_on_green",  "value": 60, "comparator": "<"  },
+                  { "palette": "white_on_yellow", "value": 60, "comparator": ">=" },
+                  { "palette": "white_on_red",    "value": 80, "comparator": ">=" }
+                ],
+                "response_format": "scalar",
+                "queries": [{ "query": "avg:aws.ecs.service.cpuutilization{$cluster,$service}", "data_source": "metrics", "name": "query1", "aggregator": "last" }]
+              }],
+              "autoscale": true,
+              "precision": 1,
+              "timeseries_background": { "type": "area" }
+            },
+            "layout": { "x": 0, "y": 0, "width": 2, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Memory %",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1"}],
+                "conditional_formats": [
+                  { "palette": "white_on_green",  "value": 60, "comparator": "<"  },
+                  { "palette": "white_on_yellow", "value": 60, "comparator": ">=" },
+                  { "palette": "white_on_red",    "value": 80, "comparator": ">=" }
+                ],
+                "response_format": "scalar",
+                "queries": [{ "query": "avg:aws.ecs.service.memory_utilization{$cluster,$service}", "data_source": "metrics", "name": "query1", "aggregator": "last" }]
+              }],
+              "autoscale": true,
+              "precision": 1,
+              "timeseries_background": { "type": "bars" }
+            },
+            "layout": { "x": 2, "y": 0, "width": 2, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Running Tasks",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1"}],
+                "conditional_formats": [{ "palette": "white_on_green", "value": 1, "comparator": ">=" }],
+                "response_format": "scalar",
+                "queries": [{ "query": "sum:aws.ecs.service.running{$cluster,$service}", "data_source": "metrics", "name": "query1", "aggregator": "last" }]
+              }],
+              "autoscale": true,
+              "precision": 0,
+              "timeseries_background": { "type": "bars" }
+            },
+            "layout": { "x": 4, "y": 0, "width": 2, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Requests / min",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1 * 60"}],
+                "response_format": "scalar",
+                "queries": [{ "query": "sum:trace.web.request.hits{$env,service:$service.value}.as_rate()", "data_source": "metrics", "name": "query1", "aggregator": "avg" }]
+              }],
+              "autoscale": true,
+              "precision": 0,
+              "timeseries_background": { "type": "area" }
+            },
+            "layout": { "x": 6, "y": 0, "width": 2, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Error Rate %",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query2 / query1 * 100"}],
+                "conditional_formats": [
+                  { "palette": "white_on_green",  "value": 1, "comparator": "<"  },
+                  { "palette": "white_on_yellow", "value": 1, "comparator": ">=" },
+                  { "palette": "white_on_red",    "value": 5, "comparator": ">=" }
+                ],
+                "response_format": "scalar",
+                "queries": [
+                  { "query": "sum:trace.web.request.hits{$env,service:$service.value}.as_count()",   "data_source": "metrics", "name": "query1", "aggregator": "sum" },
+                  { "query": "sum:trace.web.request.errors{$env,service:$service.value}.as_count()", "data_source": "metrics", "name": "query2", "aggregator": "sum" }
+                ]
+              }],
+              "autoscale": false,
+              "custom_unit": "%",
+              "precision": 2,
+              "timeseries_background": { "type": "bars" }
+            },
+            "layout": { "x": 8, "y": 0, "width": 2, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "p99 Latency",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1 / 1000000"}],
+                "conditional_formats": [
+                  { "palette": "white_on_green",  "value": 200,  "comparator": "<"  },
+                  { "palette": "white_on_yellow", "value": 200,  "comparator": ">=" },
+                  { "palette": "white_on_red",    "value": 500,  "comparator": ">=" }
+                ],
+                "response_format": "scalar",
+                "queries": [{ "query": "p99:trace.web.request{$env,service:$service.value}", "data_source": "metrics", "name": "query1", "aggregator": "avg" }]
+              }],
+              "autoscale": true,
+              "custom_unit": "ms",
+              "precision": 0,
+              "timeseries_background": { "type": "area" }
+            },
+            "layout": { "x": 10, "y": 0, "width": 2, "height": 2 }
+          }
+        ]
+      },
+      "layout": { "x": 0, "y": 0, "width": 12, "height": 3 }
+    },
+
+    {
+      "definition": {
+        "title": "APM — Latency",
+        "background_color": "vivid_purple",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "title": "p50 Latency",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1 / 1000000"}],
+                "response_format": "scalar",
+                "queries": [{ "query": "p50:trace.web.request{$env,service:$service.value}", "data_source": "metrics", "name": "query1", "aggregator": "avg" }]
+              }],
+              "autoscale": true,
+              "custom_unit": "ms",
+              "precision": 1,
+              "timeseries_background": { "type": "area" }
+            },
+            "layout": { "x": 0, "y": 0, "width": 3, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "p75 Latency",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1 / 1000000"}],
+                "response_format": "scalar",
+                "queries": [{ "query": "p75:trace.web.request{$env,service:$service.value}", "data_source": "metrics", "name": "query1", "aggregator": "avg" }]
+              }],
+              "autoscale": true,
+              "custom_unit": "ms",
+              "precision": 1,
+              "timeseries_background": { "type": "area" }
+            },
+            "layout": { "x": 3, "y": 0, "width": 3, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "p95 Latency",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1 / 1000000"}],
+                "conditional_formats": [
+                  { "palette": "white_on_green",  "value": 200, "comparator": "<"  },
+                  { "palette": "white_on_yellow", "value": 200, "comparator": ">=" },
+                  { "palette": "white_on_red",    "value": 500, "comparator": ">=" }
+                ],
+                "response_format": "scalar",
+                "queries": [{ "query": "p95:trace.web.request{$env,service:$service.value}", "data_source": "metrics", "name": "query1", "aggregator": "avg" }]
+              }],
+              "autoscale": true,
+              "custom_unit": "ms",
+              "precision": 1,
+              "timeseries_background": { "type": "area" }
+            },
+            "layout": { "x": 6, "y": 0, "width": 3, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "p99 Latency",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1 / 1000000"}],
+                "conditional_formats": [
+                  { "palette": "white_on_green",  "value": 200, "comparator": "<"  },
+                  { "palette": "white_on_yellow", "value": 200, "comparator": ">=" },
+                  { "palette": "white_on_red",    "value": 500, "comparator": ">=" }
+                ],
+                "response_format": "scalar",
+                "queries": [{ "query": "p99:trace.web.request{$env,service:$service.value}", "data_source": "metrics", "name": "query1", "aggregator": "avg" }]
+              }],
+              "autoscale": true,
+              "custom_unit": "ms",
+              "precision": 1,
+              "timeseries_background": { "type": "area" }
+            },
+            "layout": { "x": 9, "y": 0, "width": 3, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Services with Active APM Traces (Fargate)",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "treemap",
+              "requests": [{
+                "queries": [{ "query": "sum:datadog.apm.fargate_task_instance{$env} by {service}", "data_source": "metrics", "name": "query1", "aggregator": "last" }],
+                "response_format": "scalar",
+                "style": { "palette": "datadog16" },
+                "formulas": [{ "formula": "query1" }]
+              }]
+            },
+            "layout": { "x": 0, "y": 2, "width": 7, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Fargate Tasks with APM",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "formulas": [{"formula": "query1"}],
+                "conditional_formats": [
+                  { "palette": "white_on_green", "value": 1, "comparator": ">=" },
+                  { "palette": "white_on_red",   "value": 1, "comparator": "<"  }
+                ],
+                "response_format": "scalar",
+                "queries": [{ "query": "sum:datadog.apm.fargate_task_instance{$env}", "data_source": "metrics", "name": "query1", "aggregator": "last" }]
+              }],
+              "autoscale": true,
+              "precision": 0,
+              "timeseries_background": { "type": "bars" }
+            },
+            "layout": { "x": 7, "y": 2, "width": 5, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "p50 / p75 / p95 / p99 — by service",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": true,
+              "legend_layout": "horizontal",
+              "legend_columns": ["avg", "max", "value"],
+              "requests": [
+                {
+                  "formulas": [{ "alias": "p50", "formula": "query1 / 1000000" }],
+                  "response_format": "timeseries",
+                  "queries": [{ "query": "p50:trace.web.request{$env,service:$service.value} by {service}", "data_source": "metrics", "name": "query1" }],
+                  "style": { "palette": "green",  "line_type": "solid", "line_width": "thin"   },
+                  "display_type": "line"
+                },
+                {
+                  "formulas": [{ "alias": "p75", "formula": "query1 / 1000000" }],
+                  "response_format": "timeseries",
+                  "queries": [{ "query": "p75:trace.web.request{$env,service:$service.value} by {service}", "data_source": "metrics", "name": "query1" }],
+                  "style": { "palette": "yellow", "line_type": "solid", "line_width": "thin"   },
+                  "display_type": "line"
+                },
+                {
+                  "formulas": [{ "alias": "p95", "formula": "query1 / 1000000" }],
+                  "response_format": "timeseries",
+                  "queries": [{ "query": "p95:trace.web.request{$env,service:$service.value} by {service}", "data_source": "metrics", "name": "query1" }],
+                  "style": { "palette": "orange", "line_type": "solid", "line_width": "normal" },
+                  "display_type": "line"
+                },
+                {
+                  "formulas": [{ "alias": "p99", "formula": "query1 / 1000000" }],
+                  "response_format": "timeseries",
+                  "queries": [{ "query": "p99:trace.web.request{$env,service:$service.value} by {service}", "data_source": "metrics", "name": "query1" }],
+                  "style": { "palette": "red",    "line_type": "solid", "line_width": "normal" },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": { "scale": "linear", "label": "ms", "include_zero": true },
+              "markers": [
+                { "value": "y = 200", "display_type": "warning dashed", "label": "200ms" },
+                { "value": "y = 500", "display_type": "error dashed",   "label": "500ms" }
+              ]
+            },
+            "layout": { "x": 0, "y": 5, "width": 8, "height": 4 }
+          },
+          {
+            "definition": {
+              "title": "Top 10 Slowest Endpoints (p99)",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [{
+                "formulas": [{
+                  "alias": "p99 (ms)",
+                  "formula": "query1 / 1000000",
+                  "limit": { "count": 10, "order": "desc" }
+                }],
+                "response_format": "scalar",
+                "queries": [{ "query": "p99:trace.web.request{$env,service:$service.value} by {resource_name}", "data_source": "metrics", "name": "query1", "aggregator": "max" }],
+                "conditional_formats": [
+                  { "palette": "white_on_red",    "value": 500, "comparator": ">"  },
+                  { "palette": "white_on_yellow", "value": 200, "comparator": ">=" },
+                  { "palette": "white_on_green",  "value": 200, "comparator": "<"  }
+                ]
+              }]
+            },
+            "layout": { "x": 8, "y": 5, "width": 4, "height": 4 }
+          },
+          {
+            "definition": {
+              "title": "Requests/s — by service",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": true,
+              "legend_layout": "horizontal",
+              "requests": [{
+                "formulas": [{ "alias": "req/s", "formula": "query1" }],
+                "response_format": "timeseries",
+                "queries": [{ "query": "sum:trace.web.request.hits{$env,service:$service.value} by {service}.as_rate()", "data_source": "metrics", "name": "query1" }],
+                "style": { "palette": "dog_classic", "line_type": "solid", "line_width": "normal" },
+                "display_type": "bars"
+              }],
+              "yaxis": { "label": "req/s", "include_zero": true }
+            },
+            "layout": { "x": 0, "y": 9, "width": 6, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Error Rate % — by service",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": true,
+              "legend_layout": "horizontal",
+              "requests": [{
+                "formulas": [{ "alias": "error %", "formula": "query2 / query1 * 100" }],
+                "response_format": "timeseries",
+                "queries": [
+                  { "query": "sum:trace.web.request.hits{$env,service:$service.value} by {service}.as_rate()",   "data_source": "metrics", "name": "query1" },
+                  { "query": "sum:trace.web.request.errors{$env,service:$service.value} by {service}.as_rate()", "data_source": "metrics", "name": "query2" }
+                ],
+                "style": { "palette": "warm", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }],
+              "yaxis": { "label": "%", "include_zero": true, "max": "100" },
+              "markers": [
+                { "value": "y = 1", "display_type": "warning dashed", "label": "1%" },
+                { "value": "y = 5", "display_type": "error dashed",   "label": "5%" }
+              ]
+            },
+            "layout": { "x": 6, "y": 9, "width": 6, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Latency Heatmap (ms) — by service",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "heatmap",
+              "requests": [{
+                "formulas": [{ "formula": "query1 / 1000000" }],
+                "response_format": "timeseries",
+                "queries": [{ "query": "avg:trace.web.request{$env,service:$service.value} by {service}", "data_source": "metrics", "name": "query1" }],
+                "style": { "palette": "YlOrRd" }
+              }],
+              "yaxis": { "label": "ms", "include_zero": true }
+            },
+            "layout": { "x": 0, "y": 12, "width": 6, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "p99 Latency — by Task Family",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": true,
+              "legend_layout": "horizontal",
+              "requests": [{
+                "formulas": [{ "alias": "p99 (ms)", "formula": "query1 / 1000000" }],
+                "response_format": "timeseries",
+                "queries": [{ "query": "p99:trace.web.request{$env,$task_family} by {task_family}", "data_source": "metrics", "name": "query1" }],
+                "style": { "palette": "purple", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }],
+              "yaxis": { "label": "ms", "include_zero": true },
+              "markers": [{ "value": "y = 500", "display_type": "error dashed", "label": "500ms" }]
+            },
+            "layout": { "x": 6, "y": 12, "width": 6, "height": 3 }
+          }
+        ]
+      },
+      "layout": { "x": 0, "y": 3, "width": 12, "height": 16 }
+    },
+
+    {
+      "definition": {
+        "title": "ECS — Infrastructure",
+        "background_color": "blue",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "title": "ECS Agent Status",
+              "title_size": "13",
+              "title_align": "center",
+              "type": "check_status",
+              "check": "aws.ecs.agent_connected",
+              "grouping": "cluster",
+              "group_by": [],
+              "tags": ["$cluster"]
+            },
+            "layout": { "x": 0, "y": 0, "width": 4, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Running Services",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "response_format": "scalar",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.services{$cluster}", "aggregator": "avg" }]
+              }],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": { "x": 4, "y": 0, "width": 2, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "% Running Containers per ECS Service",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [{
+                "style": { "palette": "dog_classic" },
+                "response_format": "scalar",
+                "queries": [
+                  { "data_source": "metrics", "name": "query1", "query": "avg:aws.ecs.service.running{$cluster,$service} by {servicename}", "aggregator": "avg" },
+                  { "data_source": "metrics", "name": "query2", "query": "avg:aws.ecs.service.pending{$cluster,$service} by {servicename}", "aggregator": "avg" }
+                ],
+                "formulas": [{
+                  "formula": "top(query1, 10, \"mean\", \"desc\") / (top(query2, 10, \"mean\", \"desc\") + top(query1, 10, \"mean\", \"desc\")) * 100",
+                  "limit": { "count": 10, "order": "desc" }
+                }]
+              }]
+            },
+            "layout": { "x": 6, "y": 0, "width": 6, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "ECS Events",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "list_stream",
+              "requests": [{
+                "query": { "query_string": "source:amazon_ecs", "data_source": "event_stream", "event_size": "s" },
+                "columns": [],
+                "response_format": "event_list"
+              }]
+            },
+            "layout": { "x": 0, "y": 2, "width": 6, "height": 4 }
+          },
+          {
+            "definition": {
+              "title": "% Tasks Running",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "response_format": "scalar",
+                "queries": [
+                  { "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.running_tasks_count{$cluster,$service}", "aggregator": "last" },
+                  { "data_source": "metrics", "name": "query2", "query": "sum:aws.ecs.pending_tasks_count{$cluster,$service}", "aggregator": "last" }
+                ],
+                "formulas": [{ "formula": "(query1 / (query1 + query2)) * 100" }]
+              }],
+              "autoscale": true,
+              "custom_unit": "%",
+              "precision": 2
+            },
+            "layout": { "x": 6, "y": 2, "width": 6, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Running Tasks",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "response_format": "scalar",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.running_tasks_count{$cluster,$service}", "aggregator": "last" }]
+              }],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": { "x": 6, "y": 4, "width": 3, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Pending Tasks",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "response_format": "scalar",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.pending_tasks_count{$cluster,$service}", "aggregator": "last" }]
+              }],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": { "x": 9, "y": 4, "width": 3, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Running Tasks over Time",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.running_tasks_count{$cluster,$service} by {clustername}" }],
+                "style": { "palette": "dog_classic", "line_type": "solid", "line_width": "normal" },
+                "display_type": "area"
+              }]
+            },
+            "layout": { "x": 0, "y": 6, "width": 6, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Pending Tasks over Time",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.pending_tasks_count{$cluster,$service} by {clustername}" }],
+                "style": { "palette": "warm", "line_type": "solid", "line_width": "normal" },
+                "display_type": "area"
+              }]
+            },
+            "layout": { "x": 6, "y": 6, "width": 6, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Containers RUNNING",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.service.running{$cluster,$service} by {clustername}" }],
+                "style": { "palette": "purple", "line_type": "solid", "line_width": "normal" },
+                "display_type": "area"
+              }]
+            },
+            "layout": { "x": 0, "y": 8, "width": 9, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Running vs All",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "response_format": "scalar",
+                "queries": [
+                  { "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.service.running{$cluster,$service}", "aggregator": "avg" },
+                  { "data_source": "metrics", "name": "query2", "query": "sum:aws.ecs.service.desired{$cluster,$service}", "aggregator": "avg" },
+                  { "data_source": "metrics", "name": "query3", "query": "sum:aws.ecs.service.pending{$cluster,$service}", "aggregator": "avg" }
+                ],
+                "formulas": [{ "formula": "(query1 / (query1 + query2 + query3)) * 100" }]
+              }],
+              "autoscale": true,
+              "custom_unit": "%",
+              "precision": 2
+            },
+            "layout": { "x": 9, "y": 8, "width": 3, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Containers PENDING",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.service.pending{$cluster,$service} by {clustername}" }],
+                "style": { "palette": "purple", "line_type": "solid", "line_width": "normal" },
+                "display_type": "area"
+              }]
+            },
+            "layout": { "x": 0, "y": 10, "width": 9, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Pending vs All",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "response_format": "scalar",
+                "queries": [
+                  { "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.service.pending{$cluster,$service}", "aggregator": "avg" },
+                  { "data_source": "metrics", "name": "query2", "query": "sum:aws.ecs.service.running{$cluster,$service}", "aggregator": "avg" },
+                  { "data_source": "metrics", "name": "query3", "query": "sum:aws.ecs.service.desired{$cluster,$service}", "aggregator": "avg" }
+                ],
+                "formulas": [{ "formula": "(query1 / (query2 + query3 + query1)) * 100" }]
+              }],
+              "autoscale": true,
+              "custom_unit": "%",
+              "precision": 2
+            },
+            "layout": { "x": 9, "y": 10, "width": 3, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Containers DESIRED",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.service.desired{$cluster,$service} by {clustername}" }],
+                "style": { "palette": "purple", "line_type": "solid", "line_width": "normal" },
+                "display_type": "area"
+              }]
+            },
+            "layout": { "x": 0, "y": 12, "width": 9, "height": 2 }
+          },
+          {
+            "definition": {
+              "title": "Desired vs All",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [{
+                "response_format": "scalar",
+                "queries": [
+                  { "data_source": "metrics", "name": "query1", "query": "sum:aws.ecs.service.desired{$cluster,$service}", "aggregator": "avg" },
+                  { "data_source": "metrics", "name": "query2", "query": "sum:aws.ecs.service.running{$cluster,$service}", "aggregator": "avg" },
+                  { "data_source": "metrics", "name": "query3", "query": "sum:aws.ecs.service.pending{$cluster,$service}", "aggregator": "avg" }
+                ],
+                "formulas": [{ "formula": "(query1 / (query2 + query1 + query3)) * 100" }]
+              }],
+              "autoscale": true,
+              "custom_unit": "%",
+              "precision": 2
+            },
+            "layout": { "x": 9, "y": 12, "width": 3, "height": 2 }
+          }
+        ]
+      },
+      "layout": { "x": 0, "y": 19, "width": 12, "height": 15 }
+    },
+
+    {
+      "definition": {
+        "title": "Resource Utilization",
+        "background_color": "gray",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "title": "CPU % por Servicio",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "requests": [{
+                "formulas": [{ "formula": "query1" }],
+                "response_format": "timeseries",
+                "queries": [{ "query": "avg:aws.ecs.service.cpuutilization{$cluster,$service} by {servicename}", "data_source": "metrics", "name": "query1" }],
+                "style": { "palette": "dog_classic", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }],
+              "yaxis": { "include_zero": true, "scale": "linear", "min": "0", "max": "100" },
+              "markers": [{ "label": "80%", "value": "y = 80", "display_type": "error dashed" }]
+            },
+            "layout": { "x": 0, "y": 0, "width": 4, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Memory % por Servicio",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "requests": [{
+                "formulas": [{ "formula": "query1" }],
+                "response_format": "timeseries",
+                "queries": [{ "query": "avg:aws.ecs.service.memory_utilization{$cluster,$service} by {servicename}", "data_source": "metrics", "name": "query1" }],
+                "style": { "palette": "cool", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }],
+              "yaxis": { "include_zero": true, "scale": "linear", "min": "0", "max": "100" },
+              "markers": [{ "label": "80%", "value": "y = 80", "display_type": "error dashed" }]
+            },
+            "layout": { "x": 4, "y": 0, "width": 4, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Tasks — Desired / Pending / Running",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "requests": [
+                {
+                  "formulas": [{ "alias": "Desired", "formula": "query1" }],
+                  "response_format": "timeseries",
+                  "queries": [{ "query": "sum:aws.ecs.service.desired{$cluster,$service}.rollup(sum, 60)", "data_source": "metrics", "name": "query1" }],
+                  "style": { "palette": "purple",     "line_type": "solid", "line_width": "thin"   },
+                  "display_type": "bars"
+                },
+                {
+                  "formulas": [{ "alias": "Pending", "formula": "query1" }],
+                  "response_format": "timeseries",
+                  "queries": [{ "query": "sum:aws.ecs.service.pending{$cluster,$service}.rollup(sum, 60)", "data_source": "metrics", "name": "query1" }],
+                  "style": { "palette": "warm",       "line_type": "solid", "line_width": "normal" },
+                  "display_type": "line"
+                },
+                {
+                  "formulas": [{ "alias": "Running", "formula": "query1" }],
+                  "response_format": "timeseries",
+                  "queries": [{ "query": "sum:aws.ecs.service.running{$cluster,$service}.rollup(sum, 60)", "data_source": "metrics", "name": "query1" }],
+                  "style": { "palette": "dog_classic", "line_type": "solid", "line_width": "normal" },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": { "include_zero": true, "scale": "linear" }
+            },
+            "layout": { "x": 8, "y": 0, "width": 4, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Network — Bytes Sent (Fargate)",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "query": "avg:ecs.fargate.net.bytes_sent{$cluster} by {container_id}", "data_source": "metrics", "name": "query1" }],
+                "style": { "palette": "dog_classic", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }]
+            },
+            "layout": { "x": 0, "y": 3, "width": 4, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Network — Bytes Received (Fargate)",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "query": "avg:ecs.fargate.net.bytes_rcvd{$cluster} by {container_id}", "data_source": "metrics", "name": "query1" }],
+                "style": { "palette": "green", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }]
+            },
+            "layout": { "x": 4, "y": 3, "width": 4, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Network — Sent & Received by Task Family",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "requests": [{
+                "formulas": [
+                  { "alias": "Bytes Received", "formula": "fargate_rcvd" },
+                  { "alias": "Bytes Sent",     "formula": "fargate_sent" }
+                ],
+                "response_format": "timeseries",
+                "queries": [
+                  { "data_source": "metrics", "name": "fargate_rcvd", "query": "sum:ecs.fargate.net.bytes_rcvd{$task_family}.fill(null).rollup(avg, 20)" },
+                  { "data_source": "metrics", "name": "fargate_sent", "query": "sum:ecs.fargate.net.bytes_sent{$task_family}.fill(null).rollup(avg, 20)" }
+                ],
+                "style": { "palette": "classic", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }]
+            },
+            "layout": { "x": 8, "y": 3, "width": 4, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "CPU Cluster — Reservation",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "avg:aws.ecs.cpureservation{$cluster,$service} by {clustername}" }],
+                "style": { "palette": "dog_classic", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }]
+            },
+            "layout": { "x": 0, "y": 6, "width": 6, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "CPU Cluster — Utilization",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "avg:aws.ecs.cpuutilization{$cluster,$service} by {clustername}" }],
+                "style": { "palette": "dog_classic", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }]
+            },
+            "layout": { "x": 6, "y": 6, "width": 6, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Memory Cluster — Reservation",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "avg:aws.ecs.memory_reservation{$cluster,$service} by {clustername}" }],
+                "style": { "palette": "dog_classic", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }]
+            },
+            "layout": { "x": 0, "y": 9, "width": 6, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Memory Cluster — Utilization",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "timeseries",
+              "show_legend": false,
+              "requests": [{
+                "response_format": "timeseries",
+                "queries": [{ "data_source": "metrics", "name": "query1", "query": "avg:aws.ecs.memory_utilization{$cluster,$service} by {clustername}" }],
+                "style": { "palette": "dog_classic", "line_type": "solid", "line_width": "normal" },
+                "display_type": "line"
+              }]
+            },
+            "layout": { "x": 6, "y": 9, "width": 6, "height": 3 }
+          },
+          {
+            "definition": {
+              "title": "Top Services — CPU / Memory / Running Tasks",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_table",
+              "requests": [{
+                "response_format": "scalar",
+                "queries": [
+                  { "query": "avg:aws.ecs.service.cpuutilization{$cluster,$service} by {servicename}",    "data_source": "metrics", "name": "query1", "aggregator": "avg" },
+                  { "query": "avg:aws.ecs.service.memory_utilization{$cluster,$service} by {servicename}", "data_source": "metrics", "name": "query2", "aggregator": "avg" },
+                  { "query": "sum:aws.ecs.service.running{$cluster,$service} by {servicename}",             "data_source": "metrics", "name": "query3", "aggregator": "last" }
+                ],
+                "sort": { "count": 20, "order_by": [{ "type": "formula", "index": 0, "order": "desc" }] },
+                "formulas": [
+                  {
+                    "alias": "CPU %",
+                    "formula": "query1",
+                    "conditional_formats": [
+                      { "palette": "white_on_red",    "value": 80, "comparator": ">"  },
+                      { "palette": "white_on_yellow", "value": 60, "comparator": ">"  },
+                      { "palette": "white_on_green",  "value": 60, "comparator": "<=" }
+                    ]
+                  },
+                  {
+                    "alias": "Memory %",
+                    "formula": "query2",
+                    "conditional_formats": [
+                      { "palette": "white_on_red",    "value": 80, "comparator": ">"  },
+                      { "palette": "white_on_yellow", "value": 60, "comparator": ">"  },
+                      { "palette": "white_on_green",  "value": 60, "comparator": "<=" }
+                    ]
+                  },
+                  { "alias": "Running Tasks", "formula": "query3" }
+                ]
+              }]
+            },
+            "layout": { "x": 0, "y": 12, "width": 12, "height": 4 }
+          }
+        ]
+      },
+      "layout": { "x": 0, "y": 34, "width": 12, "height": 17 }
+    }
+
+  ]
+}

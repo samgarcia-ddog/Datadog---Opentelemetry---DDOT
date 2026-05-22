@@ -1,0 +1,68 @@
+# Datadog Agent combinado para escenarios 1-4 simultáneos
+# - DDOT OTel Collector habilitado (S1: OTel SDK → DDOT, S2: DD SDK + DDOT)
+# - OTLP receiver habilitado (S3: OTel SDK → DD Agent OTLP)
+# - Admission Controller habilitado (S2 y S4: auto-instrumentación DD SDK)
+datadog:
+  apiKeyExistingSecret: datadog-secret
+  apiKeyExistingSecretKey: api-key
+  site: datadoghq.com
+
+  # DDOT — OTel Collector embebido en el Agent (S1)
+  # Config se pasa via --set-file datadog.otelCollector.config
+  otelCollector:
+    enabled: true
+    ports:
+      - containerPort: 4327
+        hostPort: 4327
+        name: ddot-grpc
+      - containerPort: 4328
+        hostPort: 4328
+        name: ddot-http
+
+  # OTLP receiver nativo del Agent (S3)
+  otlp:
+    receiver:
+      protocols:
+        grpc:
+          enabled: true
+          endpoint: 0.0.0.0:4317
+        http:
+          enabled: true
+          endpoint: 0.0.0.0:4318
+
+  apm:
+    enabled: true
+    portEnabled: true
+    logInjection: true
+    peer_service_aggregation: true
+
+  orchestratorExplorer:
+    enabled: true
+
+  processAgent:
+    enabled: true
+    processCollection: true
+
+  logs:
+    enabled: true
+    containerCollectAll: true
+
+  kubelet:
+    tlsVerify: false
+
+  tags:
+    - "project:gorrashop"
+    - "mode:multi-scenario"
+
+agents:
+  tolerations:
+    - operator: Exists
+
+clusterAgent:
+  enabled: true
+  replicas: 1
+  admissionController:
+    enabled: true
+    mutateUnlabelled: false
+  metricsProvider:
+    enabled: true

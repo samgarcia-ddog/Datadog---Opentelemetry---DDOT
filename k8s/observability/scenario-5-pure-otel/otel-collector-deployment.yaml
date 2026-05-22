@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector-pure
+  namespace: observability
+  labels:
+    app: otel-collector-pure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector-pure
+  template:
+    metadata:
+      labels:
+        app: otel-collector-pure
+    spec:
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.114.0
+          args:
+            - --config=/conf/config.yaml
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+          ports:
+            - containerPort: 4317   # OTLP gRPC
+            - containerPort: 4318   # OTLP HTTP
+            - containerPort: 8888   # Métricas propias del collector
+            - containerPort: 8889   # Prometheus exporter
+          resources:
+            requests:
+              cpu:    200m
+              memory: 256Mi
+            limits:
+              cpu:    500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-pure-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector-pure
+  namespace: observability
+  labels:
+    app: otel-collector-pure
+  annotations:
+    # Prometheus puede scrapear directamente si está configurado
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8889"
+spec:
+  selector:
+    app: otel-collector-pure
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+    - name: metrics
+      port: 8889
+      targetPort: 8889

@@ -1,0 +1,28 @@
+spec:
+  template:
+    metadata:
+      labels:
+        scenario: "3"
+        pipeline: dd-agent-otlp
+    spec:
+      containers:
+        - name: gorrashop-backend
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://$(HOST_IP):4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: DD_ENV
+              value: "scenario-3-agent"
+            - name: DD_SERVICE
+              value: "gorrashop-backend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TAGS
+              value: "scenario:3,pipeline:dd-agent-otlp"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=scenario-3-agent,scenario=3,pipeline=dd-agent-otlp"

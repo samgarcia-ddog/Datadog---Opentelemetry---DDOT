@@ -1,0 +1,86 @@
+# Helm values para el DDOT Collector
+# Chart: datadog/opentelemetry-collector (DDOT)
+# Ref: https://docs.datadoghq.com/opentelemetry/collector_exporter/
+
+mode: deployment   # "deployment" para un collector central; "daemonset" para uno por nodo
+
+replicaCount: 1
+
+image:
+  # Imagen oficial DDOT de Datadog
+  repository: datadog/agent
+  tag: "7-jmx"
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  processors:
+    # Batch para eficiencia
+    batch:
+      send_batch_size: 1000
+      timeout: 10s
+
+    # Enriquecer con atributos del recurso K8s
+    resourcedetection:
+      detectors: [env, system, kubernetes]
+      timeout: 5s
+
+    # Limitar uso de memoria
+    memory_limiter:
+      check_interval: 1s
+      limit_percentage: 75
+      spike_limit_percentage: 15
+
+  exporters:
+    datadog:
+      api:
+        key: ${env:DD_API_KEY}
+        site: datadoghq.com   # Cambiar a datadoghq.eu si usas EU
+
+  service:
+    pipelines:
+      traces:
+        receivers:  [otlp]
+        processors: [memory_limiter, resourcedetection, batch]
+        exporters:  [datadog]
+      metrics:
+        receivers:  [otlp]
+        processors: [memory_limiter, resourcedetection, batch]
+        exporters:  [datadog]
+      logs:
+        receivers:  [otlp]
+        processors: [memory_limiter, resourcedetection, batch]
+        exporters:  [datadog]
+
+ports:
+  otlp:
+    enabled: true
+    containerPort: 4317
+    servicePort: 4317
+    protocol: TCP
+  otlp-http:
+    enabled: true
+    containerPort: 4318
+    servicePort: 4318
+    protocol: TCP
+
+env:
+  - name: DD_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: datadog-secret
+        key: api-key
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi

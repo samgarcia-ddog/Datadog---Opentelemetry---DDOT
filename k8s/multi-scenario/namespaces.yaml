@@ -1,0 +1,45 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gorrashop-s1
+  labels:
+    app.kubernetes.io/part-of: gorrashop
+    scenario: "1"
+    pipeline: ddot-collector
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gorrashop-s2
+  labels:
+    app.kubernetes.io/part-of: gorrashop
+    scenario: "2"
+    pipeline: otel-collector
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gorrashop-s3
+  labels:
+    app.kubernetes.io/part-of: gorrashop
+    scenario: "3"
+    pipeline: dd-agent-otlp
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gorrashop-s4
+  labels:
+    app.kubernetes.io/part-of: gorrashop
+    scenario: "4"
+    pipeline: dd-sdk
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gorrashop-s5
+  labels:
+    app.kubernetes.io/part-of: gorrashop
+    scenario: "5"
+    pipeline: otel-collector-oss

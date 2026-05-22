@@ -1,0 +1,35 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{1787FE1D-075E-9E68-7218-25F1BD1BBEAB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backend", "backend", "{270F7A58-C097-D64B-0343-582534E94D4F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7F29E1A1-8D7A-F2DF-352A-5BEECA50906C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GorraShop.API", "apps\backend\src\GorraShop.API\GorraShop.API.csproj", "{1D09FC5E-57E4-7FA7-DFB4-482DEB4EA0D1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1D09FC5E-57E4-7FA7-DFB4-482DEB4EA0D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D09FC5E-57E4-7FA7-DFB4-482DEB4EA0D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D09FC5E-57E4-7FA7-DFB4-482DEB4EA0D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D09FC5E-57E4-7FA7-DFB4-482DEB4EA0D1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{270F7A58-C097-D64B-0343-582534E94D4F} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{7F29E1A1-8D7A-F2DF-352A-5BEECA50906C} = {270F7A58-C097-D64B-0343-582534E94D4F}
+		{1D09FC5E-57E4-7FA7-DFB4-482DEB4EA0D1} = {7F29E1A1-8D7A-F2DF-352A-5BEECA50906C}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {451085BC-4CE2-4385-BD6E-890B40DF7BD6}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,62 @@
+# Helm values para Grafana — chart: grafana/grafana
+adminPassword: "GorraShop2024!"
+
+service:
+  type: ClusterIP
+
+resources:
+  requests:
+    cpu:    100m
+    memory: 256Mi
+
+# Datasources preconfigurads
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-server.observability
+        access: proxy
+        isDefault: true
+
+      - name: Jaeger
+        type: jaeger
+        url: http://jaeger-query.observability:16686
+        access: proxy
+
+# Dashboards automáticos desde ConfigMaps
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: gorrashop
+        orgId: 1
+        folder: GorraShop
+        type: file
+        disableDeletion: false
+        options:
+          path: /var/lib/grafana/dashboards/gorrashop
+
+dashboards:
+  gorrashop:
+    dotnet-runtime:
+      gnetId: 17706   # Dashboard de .NET Runtime Metrics (OTel)
+      revision: 1
+      datasource: Prometheus
+
+    k8s-pods:
+      gnetId: 6417    # Kubernetes Pod Metrics
+      revision: 1
+      datasource: Prometheus
+
+    otel-collector:
+      gnetId: 15983   # OTel Collector dashboard
+      revision: 1
+      datasource: Prometheus
+
+grafana.ini:
+  analytics:
+    check_for_updates: false
+  grafana_net:
+    url: https://grafana.net

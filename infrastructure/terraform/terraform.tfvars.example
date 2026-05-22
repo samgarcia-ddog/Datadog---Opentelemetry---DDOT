@@ -1,0 +1,31 @@
+# Copia este archivo a terraform.tfvars y edita los valores
+# cp terraform.tfvars.example terraform.tfvars
+
+subscription_id     = "d5eb9c7d-a085-428c-b263-0ccebe35a1c2"
+location            = "eastus"
+resource_group_name = "rg-gorrashop-lab-sg"
+environment         = "lab"
+
+# AKS
+cluster_name        = "aks-gorrashop"
+kubernetes_version  = null  # null = última versión estable
+system_node_count   = 2
+system_node_vm_size = "Standard_D2s_v3"
+app_node_count      = 2
+app_node_vm_size    = "Standard_D2s_v3"
+
+# ACR — debe ser globalmente único (solo letras y números, 5-50 chars)
+acr_name = "acrgorrashopsgallqu"
+acr_sku  = "Standard"
+
+# Networking
+vnet_address_space = "10.0.0.0/8"
+aks_subnet_prefix  = "10.240.0.0/16"
+
+tags = {
+  project     = "gorrashop"
+  environment = "lab"
+  managed_by  = "terraform"
+  datadogsg   = "true"
+  team        = "allqu"
+}

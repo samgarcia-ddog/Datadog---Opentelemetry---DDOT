@@ -1,0 +1,48 @@
+# Datadog Agent con Admission Controller habilitado
+# Para auto-instrumentación de .NET, Node.js, Java, Python, Ruby
+datadog:
+  apiKeyExistingSecret: datadog-secret
+  apiKeyExistingSecretKey: api-key
+  site: datadoghq.com
+
+  apm:
+    enabled: true
+    portEnabled: true
+    logInjection: true
+
+  logs:
+    enabled: true
+    containerCollectAll: true
+
+  kubelet:
+    tlsVerify: false
+
+  tags:
+    - "env:lab"
+    - "project:gorrashop"
+
+  # OTLP deshabilitado en este escenario (usamos DD APM nativo)
+  otlp:
+    receiver:
+      protocols:
+        grpc:
+          enabled: false
+        http:
+          enabled: false
+
+agents:
+  tolerations:
+    - operator: Exists
+
+clusterAgent:
+  enabled: true
+  replicas: 1
+
+  # Admission Controller para auto-instrumentación
+  admissionController:
+    enabled: true
+    mutateUnlabelled: false   # Solo mutar pods con la anotación explícita
+
+  # Kubernetes State Metrics
+  metricsProvider:
+    enabled: true

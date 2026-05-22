@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rum-traffic-script
+  namespace: observability
+data:
+  generate-rum.js: |
+    const puppeteer = require('puppeteer');
+
+    const scenarios = [
+      { name: 'S2-DDSDK-DDOT', url: 'http://gorrashop-frontend.gorrashop-s2.svc.cluster.local:3000' },
+      { name: 'S4-FullDatadog', url: 'http://gorrashop-frontend.gorrashop-s4.svc.cluster.local:3000' },
+    ];
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    async function browseShop(browser, scenario) {
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1280, height: 800 });
+      try {
+        await page.goto(`${scenario.url}/`, { waitUntil: 'networkidle2', timeout: 15000 });
+        await sleep(3000);
+
+        await page.goto(`${scenario.url}/catalog`, { waitUntil: 'networkidle2', timeout: 15000 });
+        await sleep(2000);
+
+        const productId = Math.floor(Math.random() * 20) + 1;
+        await page.goto(`${scenario.url}/product/${productId}`, { waitUntil: 'networkidle2', timeout: 15000 });
+        await sleep(2000);
+
+        const addBtn = await page.$('button');
+        if (addBtn) { await addBtn.click(); await sleep(1000); }
+
+        await page.goto(`${scenario.url}/cart`, { waitUntil: 'networkidle2', timeout: 15000 });
+        await sleep(2000);
+
+        console.log(`[${scenario.name}] session OK — home → catalog → product/${productId} → cart`);
+      } catch (err) {
+        console.error(`[${scenario.name}] ${err.message}`);
+      } finally {
+        await page.close();
+      }
+    }
+
+    (async () => {
+      const browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+      });
+
+      let cycle = 0;
+      while (true) {
+        cycle++;
+        for (const s of scenarios) {
+          await browseShop(browser, s);
+        }
+        console.log(`--- RUM cycle ${cycle} done ${new Date().toISOString()} ---`);
+        await sleep(15000);
+      }
+    })();
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rum-traffic-generator
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rum-traffic-generator
+  template:
+    metadata:
+      labels:
+        app: rum-traffic-generator
+    spec:
+      containers:
+        - name: puppeteer
+          image: ghcr.io/puppeteer/puppeteer:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              cd /tmp && npm init -y > /dev/null 2>&1 && npm install puppeteer > /dev/null 2>&1 && echo "puppeteer installed" && NODE_PATH=/tmp/node_modules node /scripts/generate-rum.js
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+      volumes:
+        - name: script
+          configMap:
+            name: rum-traffic-script

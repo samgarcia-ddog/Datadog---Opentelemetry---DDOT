@@ -1,0 +1,121 @@
+# DDOT Collector — Datadog Distribution of OpenTelemetry Collector
+# Deployed as a standard Deployment (no operator)
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ddot-collector-config
+  namespace: observability
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        send_batch_size: 1000
+        timeout: 10s
+
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+
+      resourcedetection:
+        detectors: [env, system]
+        timeout: 5s
+
+    exporters:
+      datadog:
+        api:
+          key: ${DD_API_KEY}
+          site: datadoghq.com
+
+      debug:
+        verbosity: normal
+
+    service:
+      pipelines:
+        traces:
+          receivers:  [otlp]
+          processors: [memory_limiter, resourcedetection, batch]
+          exporters:  [datadog, debug]
+        metrics:
+          receivers:  [otlp]
+          processors: [memory_limiter, resourcedetection, batch]
+          exporters:  [datadog]
+        logs:
+          receivers:  [otlp]
+          processors: [memory_limiter, batch]
+          exporters:  [datadog]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ddot-collector
+  namespace: observability
+  labels:
+    app: ddot-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ddot-collector
+  template:
+    metadata:
+      labels:
+        app: ddot-collector
+    spec:
+      containers:
+        - name: ddot-collector
+          image: otel/opentelemetry-collector-contrib:0.114.0
+          args:
+            - --config=/conf/config.yaml
+          env:
+            - name: DD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-secret
+                  key: api-key
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+          ports:
+            - containerPort: 4317
+              name: otlp-grpc
+            - containerPort: 4318
+              name: otlp-http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: config
+          configMap:
+            name: ddot-collector-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ddot-collector
+  namespace: observability
+spec:
+  selector:
+    app: ddot-collector
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318

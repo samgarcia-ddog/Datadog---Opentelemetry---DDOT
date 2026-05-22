@@ -1,0 +1,30 @@
+spec:
+  template:
+    metadata:
+      labels:
+        scenario: "2"
+        pipeline: dd-sdk-ddot
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        admission.datadoghq.com/enabled: "true"
+        admission.datadoghq.com/dotnet-lib.version: "v2"
+    spec:
+      containers:
+        - name: gorrashop-backend
+          env:
+            - name: OBSERVABILITY_ENABLED
+              value: "false"
+            - name: DD_ENV
+              value: "scenario-2-ddsdk-ddot"
+            - name: DD_SERVICE
+              value: "gorrashop-backend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TAGS
+              value: "scenario:2,pipeline:dd-sdk-ddot"
+            - name: DD_TRACE_SAMPLE_RATE
+              value: "1.0"
+            - name: DD_PROFILING_ENABLED
+              value: "true"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=scenario-2-ddsdk-ddot,scenario=2,pipeline=dd-sdk-ddot"

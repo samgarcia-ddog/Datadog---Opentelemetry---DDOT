@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: observability
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        send_batch_size: 1000
+        timeout: 10s
+
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+
+      # Enriquecer trazas con atributos del host/K8s
+      resourcedetection:
+        detectors: [env, system]
+        timeout: 5s
+        override: false
+
+      # Añadir atributos K8s (pod name, namespace, etc.)
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        filter:
+          node_from_env_var: KUBE_NODE_NAME
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.namespace.name
+            - k8s.deployment.name
+            - k8s.node.name
+
+    connectors:
+      datadog/connector:
+
+    exporters:
+      # Datadog exporter — envía a Datadog via API
+      datadog:
+        api:
+          key: ${DD_API_KEY}
+          site: datadoghq.com
+        traces:
+          span_name_as_resource_name: true
+        metrics:
+          histograms:
+            mode: distributions
+        host_metadata:
+          enabled: true
+
+      # Debug exporter — útil para ver qué recibe el collector (desactivar en prod)
+      debug:
+        verbosity: normal
+
+    service:
+      pipelines:
+        traces:
+          receivers:  [otlp]
+          processors: [memory_limiter, k8sattributes, resourcedetection, batch]
+          exporters:  [datadog/connector, datadog, debug]
+        metrics:
+          receivers:  [otlp, datadog/connector]
+          processors: [memory_limiter, k8sattributes, resourcedetection, batch]
+          exporters:  [datadog]
+        logs:
+          receivers:  [otlp]
+          processors: [memory_limiter, k8sattributes, batch]
+          exporters:  [datadog]

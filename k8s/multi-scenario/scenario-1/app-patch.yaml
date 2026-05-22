@@ -1,0 +1,62 @@
+# Patch Escenario 1: OTel SDK → DDOT Collector → Datadog
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-backend
+  namespace: gorrashop-s1
+spec:
+  template:
+    metadata:
+      labels:
+        scenario: "1"
+        pipeline: ddot-collector
+    spec:
+      containers:
+        - name: gorrashop-backend
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://ddot-collector.observability:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: DD_ENV
+              value: "scenario-1-ddot"
+            - name: DD_SERVICE
+              value: "gorrashop-backend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TAGS
+              value: "scenario:1,pipeline:ddot-collector"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=scenario-1-ddot,scenario=1,pipeline=ddot-collector"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-frontend
+  namespace: gorrashop-s1
+spec:
+  template:
+    metadata:
+      labels:
+        scenario: "1"
+        pipeline: ddot-collector
+    spec:
+      containers:
+        - name: gorrashop-frontend
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://ddot-collector.observability:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: DD_ENV
+              value: "scenario-1-ddot"
+            - name: DD_SERVICE
+              value: "gorrashop-frontend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TAGS
+              value: "scenario:1,pipeline:ddot-collector"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=scenario-1-ddot,scenario=1,pipeline=ddot-collector"

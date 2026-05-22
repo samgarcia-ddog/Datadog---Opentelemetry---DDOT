@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gorrashop
+  namespace: gorrashop
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    # Rewrite /api/* para el backend (elimina el prefijo /api)
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # Tráfico de la API al backend
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: gorrashop-backend
+                port:
+                  number: 8080
+          # Swagger UI del backend
+          - path: /swagger(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: gorrashop-backend
+                port:
+                  number: 8080
+          # Todo lo demás va al frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gorrashop-frontend
+                port:
+                  number: 3000

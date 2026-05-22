@@ -1,0 +1,68 @@
+# Patch Escenario 4: Datadog SDK auto-instrumentación (Admission Controller)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-backend
+  namespace: gorrashop-s4
+spec:
+  template:
+    metadata:
+      labels:
+        scenario: "4"
+        pipeline: dd-sdk
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        admission.datadoghq.com/enabled: "true"
+        admission.datadoghq.com/dotnet-lib.version: "v2"
+    spec:
+      containers:
+        - name: gorrashop-backend
+          env:
+            - name: OBSERVABILITY_ENABLED
+              value: "false"
+            - name: DD_ENV
+              value: "scenario-4-sdk"
+            - name: DD_SERVICE
+              value: "gorrashop-backend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TAGS
+              value: "scenario:4,pipeline:dd-sdk"
+            - name: DD_TRACE_SAMPLE_RATE
+              value: "1.0"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorrashop-frontend
+  namespace: gorrashop-s4
+spec:
+  template:
+    metadata:
+      labels:
+        scenario: "4"
+        pipeline: dd-sdk
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        admission.datadoghq.com/enabled: "true"
+        admission.datadoghq.com/js-lib.version: "v5"
+    spec:
+      containers:
+        - name: gorrashop-frontend
+          env:
+            - name: OBSERVABILITY_ENABLED
+              value: "false"
+            - name: NEXT_PUBLIC_OBSERVABILITY_ENABLED
+              value: "false"
+            - name: DD_ENV
+              value: "scenario-4-sdk"
+            - name: DD_SERVICE
+              value: "gorrashop-frontend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TAGS
+              value: "scenario:4,pipeline:dd-sdk"
+            - name: DD_TRACE_SAMPLE_RATE
+              value: "1.0"

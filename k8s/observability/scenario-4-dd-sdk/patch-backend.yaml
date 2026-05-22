@@ -1,0 +1,21 @@
+spec:
+  template:
+    metadata:
+      labels:
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        admission.datadoghq.com/dotnet-lib.version: "v2"
+    spec:
+      containers:
+        - name: gorrashop-backend
+          env:
+            - name: OBSERVABILITY_ENABLED
+              value: "false"
+            - name: DD_ENV
+              value: "lab"
+            - name: DD_SERVICE
+              value: "gorrashop-backend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_TRACE_SAMPLE_RATE
+              value: "1.0"

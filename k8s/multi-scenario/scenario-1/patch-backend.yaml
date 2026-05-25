@@ -1,3 +1,9 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S1 Backend — Strategic Merge Patch                                        ║
+# ║  Variante con HOST_IP para hostPort del DDOT Collector (DaemonSet)         ║
+# ║  Se aplica con: kubectl patch deployment gorrashop-backend                 ║
+# ║    --type strategic --patch-file patch-backend.yaml -n gorrashop-s1        ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 spec:
   template:
     metadata:
@@ -8,10 +14,13 @@ spec:
       containers:
         - name: gorrashop-backend
           env:
+            # HOST_IP obtiene la IP del nodo donde corre el pod
+            # Necesario para conectarse al DDOT Collector via hostPort
             - name: HOST_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            # [OTEL] DDOT Collector expone hostPort 4327 (no 4317 para evitar conflicto con DD Agent)
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://$(HOST_IP):4327"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
@@ -26,3 +35,6 @@ spec:
               value: "scenario:1,pipeline:ddot-collector"
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "deployment.environment=scenario-1-ddot,scenario=1,pipeline=ddot-collector"
+            # DBM — correlación parcial con OTel SDK
+            - name: DD_DBM_PROPAGATION_MODE
+              value: "service"

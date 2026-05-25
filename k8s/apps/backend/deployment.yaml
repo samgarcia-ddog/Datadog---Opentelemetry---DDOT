@@ -1,3 +1,14 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Deployment Base — GorraShop Backend                                        ║
+# ║                                                                            ║
+# ║  Este manifiesto es COMÚN a los 5 escenarios. Solo define:                  ║
+# ║  - Imagen del container (sin OTel ni DD)                                    ║
+# ║  - Connection strings (PostgreSQL, Redis)                                   ║
+# ║  - Health probes                                                            ║
+# ║                                                                            ║
+# ║  La observabilidad se agrega via app-patch.yaml de cada escenario           ║
+# ║  que sobreescribe las env vars con kubectl patch / apply.                   ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 # Los valores ${ACR_LOGIN_SERVER} se sustituyen via envsubst en el script de deploy
 apiVersion: apps/v1
 kind: Deployment

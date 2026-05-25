@@ -1,24 +1,46 @@
-# Instrumentation CRD para auto-instrumentación en namespace gorrashop-s4
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Instrumentation CRD — Auto-instrumentación de Datadog para namespace S4  ║
+# ║                                                                            ║
+# ║  Este CRD le dice al Admission Controller de Datadog QUÉ inyectar         ║
+# ║  en los pods del namespace gorrashop-s4:                                   ║
+# ║    - .NET: dd-trace-dotnet (init container con la librería)                ║
+# ║    - Node.js: dd-trace-js (init container con la librería)                 ║
+# ║                                                                            ║
+# ║  Cómo funciona:                                                            ║
+# ║  1. El Admission Controller detecta pods con el label                      ║
+# ║     admission.datadoghq.com/enabled: "true"                                ║
+# ║  2. Consulta este CRD para saber qué versión del tracer inyectar          ║
+# ║  3. Agrega un init container que copia la librería del tracer al pod       ║
+# ║  4. Agrega env vars (LD_PRELOAD, NODE_OPTIONS) para activar el tracer     ║
+# ║  5. La app se instrumenta automáticamente — SIN TOCAR CÓDIGO              ║
+# ║                                                                            ║
+# ║  NOTA: Las versiones aquí son base. patch-backend.yaml puede               ║
+# ║  sobreescribir la versión (ej: v2 → v3 para Code Origin).                 ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 apiVersion: datadoghq.com/v1alpha1
 kind: Instrumentation
 metadata:
   name: gorrashop-instrumentation
   namespace: gorrashop-s4
 spec:
+  # Env vars comunes a todos los tracers
   env:
     - name: DD_ENV
       value: "scenario-4-sdk"
     - name: DD_VERSION
       value: "1.0.0"
+    # Apaga OTel SDK — DD SDK se encarga
     - name: OBSERVABILITY_ENABLED
       value: "false"
 
+  # Tracer .NET — inyecta dd-trace-dotnet como init container
   dotnet:
     image: gcr.io/datadoghq/dd-lib-dotnet-init:v2
     env:
       - name: DD_TRACE_SAMPLE_RATE
         value: "1.0"
 
+  # Tracer Node.js — inyecta dd-trace-js como init container
   nodejs:
     image: gcr.io/datadoghq/dd-lib-js-init:v5
     env:

@@ -1,3 +1,16 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S5 Backend — Pure OTel (100% Open Source)                                 ║
+# ║                                                                            ║
+# ║  Pipeline: App (OTel SDK) ──▶ OTel Collector ──▶ Jaeger (traces)          ║
+# ║                                              ──▶ Prometheus (metrics)      ║
+# ║                                              ──▶ Grafana (dashboards)      ║
+# ║                                                                            ║
+# ║  Sin Datadog. Stack 100% open source.                                      ║
+# ║  Mismo código OTel SDK que S1/S3 — solo cambia el destino.                 ║
+# ║                                                                            ║
+# ║  Requiere: OTel SDK en la app + OTel Collector + Jaeger + Prometheus +     ║
+# ║  Grafana. Son 5 componentes que TÚ despliegas y mantienes.                 ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 spec:
   template:
     metadata:
@@ -8,10 +21,12 @@ spec:
       containers:
         - name: gorrashop-backend
           env:
+            # [OTEL] OTel Collector comunitario (exporta a Jaeger + Prometheus)
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector.observability:4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: "grpc"
+            # Estas tags no se usan en Datadog — son para el OTel Collector
             - name: DD_ENV
               value: "scenario-5-otel-oss"
             - name: DD_SERVICE

@@ -1,5 +1,22 @@
-# DDOT Collector — Datadog Distribution of OpenTelemetry Collector
-# Deployed as a standard Deployment (no operator)
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  DDOT Collector — Datadog Distribution of OpenTelemetry Collector          ║
+# ║                                                                            ║
+# ║  Este collector es el componente central del Escenario 1.                  ║
+# ║  Recibe telemetría OTel (OTLP) de los apps y la envía a Datadog.          ║
+# ║                                                                            ║
+# ║  Pipeline: App ──OTLP gRPC/HTTP──▶ DDOT ──Datadog API──▶ Datadog         ║
+# ║                                                                            ║
+# ║  Ventaja vs OTel Collector genérico (S2):                                  ║
+# ║    - Exporter nativo de Datadog incluido                                   ║
+# ║    - Sin necesidad de configurar exportador comunitario                    ║
+# ║    - Soporte directo de Datadog                                            ║
+# ║                                                                            ║
+# ║  Nota: Aunque se llama "DDOT", la imagen es otel/opentelemetry-collector- ║
+# ║  contrib con el exporter de Datadog ya incluido.                           ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+# ─── ConfigMap: Pipeline del Collector ─────────────────────────────────────────
+# Define: receivers → processors → exporters
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -8,37 +25,41 @@ metadata:
   namespace: observability
 data:
   config.yaml: |
+    # ── Receivers: cómo entra la telemetría ──
     receivers:
       otlp:
         protocols:
           grpc:
-            endpoint: 0.0.0.0:4317
+            endpoint: 0.0.0.0:4317    # Puerto estándar OTLP gRPC
           http:
-            endpoint: 0.0.0.0:4318
+            endpoint: 0.0.0.0:4318    # Puerto estándar OTLP HTTP
 
+    # ── Processors: transformaciones antes de exportar ──
     processors:
       batch:
-        send_batch_size: 1000
+        send_batch_size: 1000         # Agrupa spans/metrics antes de enviar
         timeout: 10s
 
       memory_limiter:
         check_interval: 1s
-        limit_percentage: 75
+        limit_percentage: 75          # Protección contra OOM
         spike_limit_percentage: 15
 
       resourcedetection:
-        detectors: [env, system]
+        detectors: [env, system]      # Detecta hostname, OS, etc.
         timeout: 5s
 
+    # ── Exporters: a dónde va la telemetría ──
     exporters:
       datadog:
         api:
-          key: ${DD_API_KEY}
+          key: ${DD_API_KEY}          # Inyectado desde Secret
           site: datadoghq.com
 
       debug:
-        verbosity: normal
+        verbosity: normal             # Logs de debug en stdout del collector
 
+    # ── Service: conecta receivers → processors → exporters ──
     service:
       pipelines:
         traces:
@@ -54,6 +75,7 @@ data:
           processors: [memory_limiter, batch]
           exporters:  [datadog]
 
+# ─── Deployment del Collector ──────────────────────────────────────────────────
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -78,6 +100,7 @@ spec:
           args:
             - --config=/conf/config.yaml
           env:
+            # DD_API_KEY se lee del Secret para autenticar con Datadog
             - name: DD_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -103,6 +126,7 @@ spec:
           configMap:
             name: ddot-collector-config
 
+# ─── Service: expone el collector para que los apps le envíen telemetría ──────
 ---
 apiVersion: v1
 kind: Service
@@ -113,6 +137,7 @@ spec:
   selector:
     app: ddot-collector
   ports:
+    # Los apps se conectan a ddot-collector.observability:4317
     - name: otlp-grpc
       port: 4317
       targetPort: 4317

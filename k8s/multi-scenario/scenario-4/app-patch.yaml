@@ -1,4 +1,21 @@
-# Patch Escenario 4: Datadog SDK auto-instrumentación (Admission Controller)
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Escenario 4 — Full Datadog (DD SDK + DD Agent directo)                    ║
+# ║                                                                            ║
+# ║  Pipeline: App ──DD SDK (auto)──▶ DD Agent (DaemonSet) ──▶ Datadog        ║
+# ║                                                                            ║
+# ║  100% Datadog, sin OTel.                                                   ║
+# ║  El Admission Controller inyecta el tracer automáticamente.                ║
+# ║  El tracer envía directo al DD Agent en el nodo (no necesita collector).   ║
+# ║                                                                            ║
+# ║  Esto es exactamente S2 pero sin DDOT Collector en medio — va directo.    ║
+# ║  Mismos features: Source Code, Code Origin, Live Debugger, Profiling, DBM. ║
+# ║                                                                            ║
+# ║  Código de instrumentación necesario: CERO                                ║
+# ║  Paquetes a instalar: CERO                                                ║
+# ║  Solo 2 annotations + env vars de configuración:                           ║
+# ║    admission.datadoghq.com/enabled: "true"                                 ║
+# ║    admission.datadoghq.com/dotnet-lib.version: "v3"                        ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -11,14 +28,17 @@ spec:
       labels:
         scenario: "4"
         pipeline: dd-sdk
+        # Label que activa el Admission Controller
         admission.datadoghq.com/enabled: "true"
       annotations:
         admission.datadoghq.com/enabled: "true"
+        # .NET tracer v2 — base. Ver patch-backend.yaml para v3 con Code Origin
         admission.datadoghq.com/dotnet-lib.version: "v2"
     spec:
       containers:
         - name: gorrashop-backend
           env:
+            # Apaga el OTel SDK — DD SDK se encarga
             - name: OBSERVABILITY_ENABLED
               value: "false"
             - name: DD_ENV
@@ -47,11 +67,13 @@ spec:
         admission.datadoghq.com/enabled: "true"
       annotations:
         admission.datadoghq.com/enabled: "true"
+        # dd-trace-js v5 inyectado automáticamente
         admission.datadoghq.com/js-lib.version: "v5"
     spec:
       containers:
         - name: gorrashop-frontend
           env:
+            # Apaga OTel SDK — DD SDK se encarga
             - name: OBSERVABILITY_ENABLED
               value: "false"
             - name: NEXT_PUBLIC_OBSERVABILITY_ENABLED

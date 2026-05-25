@@ -1,3 +1,13 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Deployment Base — GorraShop Frontend                                       ║
+# ║                                                                            ║
+# ║  Este manifiesto es COMÚN a los 5 escenarios. Solo define:                  ║
+# ║  - Imagen del container (sin OTel ni DD)                                    ║
+# ║  - URL del backend API (interno del cluster)                                ║
+# ║  - Health probes                                                            ║
+# ║                                                                            ║
+# ║  La observabilidad se agrega via app-patch.yaml de cada escenario.          ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 apiVersion: apps/v1
 kind: Deployment
 metadata:

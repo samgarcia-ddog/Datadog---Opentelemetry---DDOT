@@ -1,3 +1,9 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S3 Backend — Strategic Merge Patch                                        ║
+# ║  OTel SDK → DD Agent OTLP via hostPort                                    ║
+# ║  Se aplica con: kubectl patch deployment gorrashop-backend                 ║
+# ║    --type strategic --patch-file patch-backend.yaml -n gorrashop-s3        ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 spec:
   template:
     metadata:
@@ -12,6 +18,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            # [OTEL] DD Agent OTLP receiver en el nodo (hostPort 4317)
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://$(HOST_IP):4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
@@ -26,3 +33,6 @@ spec:
               value: "scenario:3,pipeline:dd-agent-otlp"
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "deployment.environment=scenario-3-agent,scenario=3,pipeline=dd-agent-otlp"
+            # DBM — correlación parcial con OTel SDK
+            - name: DD_DBM_PROPAGATION_MODE
+              value: "service"

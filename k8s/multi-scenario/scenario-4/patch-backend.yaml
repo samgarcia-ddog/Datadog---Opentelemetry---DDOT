@@ -1,3 +1,24 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S4 Backend — DD SDK auto-instrumentación (Full Datadog)                   ║
+# ║                                                                            ║
+# ║  Pipeline: App ──DD SDK (auto)──▶ DD Agent (DaemonSet) ──▶ Datadog        ║
+# ║                                                                            ║
+# ║  Idéntico a S2 en features, pero sin DDOT Collector en medio.              ║
+# ║  Va directo al DD Agent del nodo.                                          ║
+# ║                                                                            ║
+# ║  Comparación con OTel SDK (S1/S3):                                         ║
+# ║  ┌─────────────────────────┬──────────────┬──────────────────────┐         ║
+# ║  │ Feature                 │ OTel SDK     │ DD SDK (este)        │         ║
+# ║  ├─────────────────────────┼──────────────┼──────────────────────┤         ║
+# ║  │ Código en la app        │ ~70 líneas   │ 0 líneas             │         ║
+# ║  │ Paquetes (.NET)         │ 8 NuGet      │ 0 (inyectado)        │         ║
+# ║  │ Source Code Integration │ ✗            │ ✓                    │         ║
+# ║  │ Code Origin for Spans   │ ✗            │ ✓                    │         ║
+# ║  │ Live Debugger           │ ✗            │ ✓                    │         ║
+# ║  │ Continuous Profiler     │ ✗            │ ✓                    │         ║
+# ║  │ DBM Correlation         │ service      │ full (bidireccional) │         ║
+# ║  └─────────────────────────┴──────────────┴──────────────────────┘         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 spec:
   template:
     metadata:
@@ -7,13 +28,16 @@ spec:
         admission.datadoghq.com/enabled: "true"
       annotations:
         admission.datadoghq.com/enabled: "true"
+        # v3 necesario para Code Origin for Spans
         admission.datadoghq.com/dotnet-lib.version: "v3"
     spec:
       containers:
         - name: gorrashop-backend
           env:
+            # Apaga OTel SDK
             - name: OBSERVABILITY_ENABLED
               value: "false"
+            # ── Unified Service Tags ──
             - name: DD_ENV
               value: "scenario-4-sdk"
             - name: DD_SERVICE
@@ -24,11 +48,22 @@ spec:
               value: "scenario:4,pipeline:dd-sdk"
             - name: DD_TRACE_SAMPLE_RATE
               value: "1.0"
+            # ── Continuous Profiler ──
             - name: DD_PROFILING_ENABLED
               value: "true"
+            # ── Source Code Integration ──
             - name: DD_GIT_COMMIT_SHA
               value: "879150c2b0500c20335c69e6756680ab200ae731"
             - name: DD_GIT_REPOSITORY_URL
               value: "https://github.com/samgarcia-ddog/Datadog---Opentelemetry---DDOT"
+            # ── Code Origin for Spans ──
             - name: DD_CODE_ORIGIN_FOR_SPANS_ENABLED
               value: "true"
+            # ── Live Debugger / Dynamic Instrumentation ──
+            - name: DD_DYNAMIC_INSTRUMENTATION_ENABLED
+              value: "true"
+            - name: DD_REMOTE_CONFIGURATION_ENABLED
+              value: "true"
+            # ── DBM correlation bidireccional ──
+            - name: DD_DBM_PROPAGATION_MODE
+              value: "full"

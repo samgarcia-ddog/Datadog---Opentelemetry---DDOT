@@ -1,3 +1,7 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S3 Frontend — Strategic Merge Patch                                       ║
+# ║  OTel SDK → DD Agent OTLP via hostPort                                    ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 spec:
   template:
     metadata:
@@ -12,6 +16,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            # [OTEL] DD Agent OTLP receiver en el nodo
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://$(HOST_IP):4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL

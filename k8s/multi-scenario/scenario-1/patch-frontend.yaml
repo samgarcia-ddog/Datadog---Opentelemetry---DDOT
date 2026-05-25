@@ -1,3 +1,7 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S1 Frontend — Strategic Merge Patch                                       ║
+# ║  Variante con HOST_IP para hostPort del DDOT Collector (DaemonSet)         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 spec:
   template:
     metadata:
@@ -12,6 +16,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            # [OTEL] DDOT Collector via hostPort 4327
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://$(HOST_IP):4327"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL

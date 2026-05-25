@@ -1,4 +1,25 @@
-# Patch Escenario 3: OTel SDK → Datadog Agent (OTLP via hostPort) → Datadog
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Escenario 3 — OTel SDK → Datadog Agent (OTLP receiver) → Datadog         ║
+# ║                                                                            ║
+# ║  Pipeline: App (OTel SDK) ──OTLP gRPC──▶ DD Agent (hostPort) ──▶ Datadog ║
+# ║                                                                            ║
+# ║  La app usa OTel SDK igual que S1, pero envía telemetría directamente      ║
+# ║  al Datadog Agent que ya corre como DaemonSet en cada nodo.                ║
+# ║  No necesita un collector separado — el Agent tiene receiver OTLP.         ║
+# ║                                                                            ║
+# ║  Configuración necesaria en la app:                                        ║
+# ║    - [OTEL] Código de instrumentación (Program.cs ~70 líneas)              ║
+# ║    - [OTEL] 8 paquetes NuGet (.NET) / 7 paquetes npm (Node.js)            ║
+# ║    - [OTEL] HOST_IP para conectarse al Agent del nodo via hostPort         ║
+# ║                                                                            ║
+# ║  Ventajas:                                                                 ║
+# ║    ✓ No necesita collector adicional — usa el Agent existente              ║
+# ║    ✓ Menos componentes que gestionar                                       ║
+# ║  Desventajas:                                                              ║
+# ║    ✗ Requiere mantener código OTel + paquetes en cada servicio             ║
+# ║    ✗ No soporta Source Code Integration ni Code Origin                     ║
+# ║    ✗ DBM correlation solo modo "service" (parcial)                         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -15,14 +36,19 @@ spec:
       containers:
         - name: gorrashop-backend
           env:
+            # HOST_IP = IP del nodo. El Agent corre como DaemonSet en cada nodo
+            # y expone OTLP en hostPort 4317.
             - name: HOST_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            # [OTEL] Endpoint del DD Agent en el mismo nodo via hostPort
+            # A diferencia de S1 (collector service), aquí se conecta directo al nodo
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://$(HOST_IP):4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: "grpc"
+            # ── Unified Service Tags ──
             - name: DD_ENV
               value: "scenario-3-agent"
             - name: DD_SERVICE
@@ -33,6 +59,9 @@ spec:
               value: "scenario:3,pipeline:dd-agent-otlp"
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "deployment.environment=scenario-3-agent,scenario=3,pipeline=dd-agent-otlp"
+            # DBM — correlación parcial con OTel SDK
+            - name: DD_DBM_PROPAGATION_MODE
+              value: "service"
 
 ---
 apiVersion: apps/v1
@@ -54,6 +83,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            # [OTEL] DD Agent via hostPort
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://$(HOST_IP):4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL

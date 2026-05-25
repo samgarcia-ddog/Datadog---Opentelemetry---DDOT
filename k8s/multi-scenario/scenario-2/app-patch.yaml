@@ -1,4 +1,19 @@
-# Patch Escenario 2: OTel SDK → OTel Collector + Datadog Exporter → Datadog
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Escenario 2 — OTel SDK → OTel Collector + Datadog Exporter → Datadog     ║
+# ║  (NOTA: esta variante usa OTel SDK. Ver patch-backend/frontend.yaml        ║
+# ║  para la variante DD SDK recomendada que se despliega actualmente)         ║
+# ║                                                                            ║
+# ║  Pipeline: App (OTel SDK) ──gRPC:4317──▶ OTel Collector ──DD Exp──▶ DD   ║
+# ║                                                                            ║
+# ║  Usa el OTel Collector comunitario con el Datadog Exporter como plugin.    ║
+# ║  Es la opción más "estándar OTel" — vendor-neutral en el app, pero        ║
+# ║  necesita configurar el exporter de Datadog en el collector.               ║
+# ║                                                                            ║
+# ║  Requiere:                                                                 ║
+# ║    - [OTEL] Código de instrumentación en la app (Program.cs / instr.ts)    ║
+# ║    - [OTEL] 8 NuGet / 7 npm packages                                      ║
+# ║    - [OTEL] OTel Collector con Datadog Exporter configurado                ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -15,6 +30,7 @@ spec:
       containers:
         - name: gorrashop-backend
           env:
+            # [OTEL] Endpoint del OTel Collector comunitario
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector.observability:4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL

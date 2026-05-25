@@ -1,4 +1,25 @@
-# Patch Escenario 1: OTel SDK → DDOT Collector → Datadog
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Escenario 1 — OTel SDK → DDOT Collector → Datadog                        ║
+# ║                                                                            ║
+# ║  Pipeline: App (OTel SDK) ──gRPC:4317──▶ DDOT Collector ──▶ Datadog       ║
+# ║                                                                            ║
+# ║  La app usa OTel SDK (instrumentation.ts / Program.cs) para generar        ║
+# ║  traces, métricas y logs. Se envían al DDOT Collector (Datadog             ║
+# ║  Distribution of OpenTelemetry Collector) que los exporta a Datadog.       ║
+# ║                                                                            ║
+# ║  Configuración necesaria en la app:                                        ║
+# ║    - [OTEL] Código de instrumentación (Program.cs ~70 líneas)              ║
+# ║    - [OTEL] 8 paquetes NuGet (.NET) / 7 paquetes npm (Node.js)            ║
+# ║    - [OTEL] OTEL_EXPORTER_OTLP_ENDPOINT apuntando al DDOT Collector       ║
+# ║                                                                            ║
+# ║  Ventajas:                                                                 ║
+# ║    ✓ Collector recomendado por Datadog para pipelines OTel                 ║
+# ║    ✓ Soporte nativo de formatos Datadog (sin convertir)                    ║
+# ║  Desventajas:                                                              ║
+# ║    ✗ Requiere mantener código OTel + paquetes en cada servicio             ║
+# ║    ✗ No soporta Source Code Integration ni Code Origin                     ║
+# ║    ✗ DBM correlation solo modo "service" (parcial, no bidireccional)       ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -15,10 +36,14 @@ spec:
       containers:
         - name: gorrashop-backend
           env:
+            # [OTEL] Endpoint del DDOT Collector — recibe telemetría via OTLP gRPC
+            # El DDOT Collector corre como Service en el namespace observability
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://ddot-collector.observability:4317"
+            # [OTEL] Protocolo OTLP — gRPC es más eficiente que HTTP/protobuf
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: "grpc"
+            # Tags de Datadog — para filtrar en APM por env:scenario-1-ddot
             - name: DD_ENV
               value: "scenario-1-ddot"
             - name: DD_SERVICE
@@ -27,8 +52,14 @@ spec:
               value: "1.0.0"
             - name: DD_TAGS
               value: "scenario:1,pipeline:ddot-collector"
+            # [OTEL] Resource attributes — se adjuntan a cada trace/metric/log
+            # Estos atributos viajan con la telemetría al collector
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "deployment.environment=scenario-1-ddot,scenario=1,pipeline=ddot-collector"
+            # DBM — correlación parcial (solo ve queries desde el trace, NO al revés)
+            # Con OTel SDK no hay inyección de SQL comments → modo "service" únicamente
+            - name: DD_DBM_PROPAGATION_MODE
+              value: "service"
 
 ---
 apiVersion: apps/v1
@@ -46,6 +77,7 @@ spec:
       containers:
         - name: gorrashop-frontend
           env:
+            # [OTEL] Mismo DDOT Collector que el backend
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://ddot-collector.observability:4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL

@@ -1,3 +1,15 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Dockerfile — GorraShop Frontend (Next.js 14)                              ║
+# ║                                                                            ║
+# ║  ESTE DOCKERFILE ES IDÉNTICO PARA LOS 5 ESCENARIOS.                        ║
+# ║  No contiene ninguna referencia a Datadog ni OpenTelemetry.                 ║
+# ║                                                                            ║
+# ║  - S1/S3/S5 (OTel SDK): la instrumentación viene de paquetes npm           ║
+# ║    en package.json + código en instrumentation.ts                           ║
+# ║  - S2/S4 (DD SDK): el Admission Controller inyecta dd-trace-js             ║
+# ║    como init container — el Dockerfile no cambia                            ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
 # ─── Deps Stage ───────────────────────────────────────────────────────────────
 FROM node:20-alpine AS deps
 WORKDIR /app

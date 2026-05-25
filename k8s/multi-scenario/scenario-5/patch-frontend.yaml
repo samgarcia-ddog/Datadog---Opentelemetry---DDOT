@@ -1,3 +1,7 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S5 Frontend — Pure OTel (100% Open Source)                                ║
+# ║  Mismo OTel Collector que el backend → Jaeger + Prometheus + Grafana       ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 spec:
   template:
     metadata:
@@ -8,6 +12,7 @@ spec:
       containers:
         - name: gorrashop-frontend
           env:
+            # [OTEL] OTel Collector comunitario
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector.observability:4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL

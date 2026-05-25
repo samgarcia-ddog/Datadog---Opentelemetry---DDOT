@@ -1,19 +1,49 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S2 Backend — DD SDK auto-instrumentación + DDOT Collector (RECOMENDADO)   ║
+# ║                                                                            ║
+# ║  Pipeline: App ──DD SDK (auto)──▶ DDOT Collector ──▶ Datadog              ║
+# ║                                                                            ║
+# ║  ESTA ES LA CONFIGURACIÓN RECOMENDADA POR DATADOG.                        ║
+# ║  Compara con S1/S3 donde necesitas ~70 líneas de código OTel +            ║
+# ║  8 paquetes NuGet. Aquí: 0 líneas de código, 0 paquetes.                  ║
+# ║                                                                            ║
+# ║  Cómo funciona:                                                            ║
+# ║  1. El label admission.datadoghq.com/enabled: "true" activa la            ║
+# ║     inyección automática del Admission Controller de Datadog               ║
+# ║  2. La annotation dotnet-lib.version: "v3" define la versión del           ║
+# ║     tracer dd-trace-dotnet que se inyecta como init container              ║
+# ║  3. Al arrancar el pod, Kubernetes ejecuta el init container que           ║
+# ║     copia el tracer al pod. La app se instrumenta SIN TOCAR CÓDIGO.       ║
+# ║                                                                            ║
+# ║  Features exclusivos de DD SDK (NO disponibles con OTel SDK):              ║
+# ║    ✓ Source Code Integration (DD_GIT_*)                                    ║
+# ║    ✓ Code Origin for Spans (DD_CODE_ORIGIN_FOR_SPANS_ENABLED)             ║
+# ║    ✓ Live Debugger / Dynamic Instrumentation                              ║
+# ║    ✓ Continuous Profiler (DD_PROFILING_ENABLED)                            ║
+# ║    ✓ DBM correlation bidireccional (DD_DBM_PROPAGATION_MODE=full)         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 spec:
   template:
     metadata:
       labels:
         scenario: "2"
         pipeline: dd-sdk-ddot
+        # Label que activa el Admission Controller — inyecta dd-trace-dotnet
         admission.datadoghq.com/enabled: "true"
       annotations:
+        # Annotation que confirma la inyección (redundante con label, pero requerido)
         admission.datadoghq.com/enabled: "true"
+        # Versión del tracer .NET — v3 necesario para Code Origin for Spans
+        # v2 NO soporta Code Origin. Upgrade a v3 no requiere cambios en código.
         admission.datadoghq.com/dotnet-lib.version: "v3"
     spec:
       containers:
         - name: gorrashop-backend
           env:
+            # Apaga el OTel SDK en Program.cs — DD SDK se encarga de todo
             - name: OBSERVABILITY_ENABLED
               value: "false"
+            # ── Unified Service Tags (estándar Datadog) ──
             - name: DD_ENV
               value: "scenario-2-ddsdk-ddot"
             - name: DD_SERVICE
@@ -22,15 +52,38 @@ spec:
               value: "1.0.0"
             - name: DD_TAGS
               value: "scenario:2,pipeline:dd-sdk-ddot"
+            # ── Sampling ──
             - name: DD_TRACE_SAMPLE_RATE
               value: "1.0"
+            # ── Continuous Profiler — CPU + memory profiling en producción ──
             - name: DD_PROFILING_ENABLED
               value: "true"
+            # ── Source Code Integration ──
+            # Vincula cada span con la línea de código en GitHub
+            # Requiere: GitHub App conectada en Datadog UI (Integrations → Source Code)
             - name: DD_GIT_COMMIT_SHA
               value: "879150c2b0500c20335c69e6756680ab200ae731"
             - name: DD_GIT_REPOSITORY_URL
               value: "https://github.com/samgarcia-ddog/Datadog---Opentelemetry---DDOT"
+            # ── Code Origin for Spans ──
+            # Muestra qué método/archivo generó cada span directamente en APM
+            # Requiere dd-trace-dotnet >= v3 (por eso la annotation dice v3)
             - name: DD_CODE_ORIGIN_FOR_SPANS_ENABLED
               value: "true"
+            # ── Live Debugger / Dynamic Instrumentation ──
+            # Permite crear logpoints, metric probes y span probes en producción
+            # SIN redeploy — directamente desde la UI de Datadog
+            - name: DD_DYNAMIC_INSTRUMENTATION_ENABLED
+              value: "true"
+            # Remote Configuration — necesario para Live Debugger
+            - name: DD_REMOTE_CONFIGURATION_ENABLED
+              value: "true"
+            # ── DBM (Database Monitoring) correlation ──
+            # "full" = bidireccional: trace→query Y query→trace
+            # DD SDK inyecta SQL comments con trace_id en cada query
+            # Solo disponible con DD SDK — OTel SDK solo soporta "service" (parcial)
+            - name: DD_DBM_PROPAGATION_MODE
+              value: "full"
+            # Resource attributes de OTel (para compatibilidad)
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "deployment.environment=scenario-2-ddsdk-ddot,scenario=2,pipeline=dd-sdk-ddot"

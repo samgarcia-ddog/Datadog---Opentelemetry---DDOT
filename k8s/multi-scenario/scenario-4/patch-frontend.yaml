@@ -1,3 +1,9 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S4 Frontend — DD SDK auto-instrumentación (Next.js)                       ║
+# ║                                                                            ║
+# ║  Mismo esquema que S2 frontend — Admission Controller inyecta              ║
+# ║  dd-trace-js v5 automáticamente. RUM habilitado para browser sessions.     ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 spec:
   template:
     metadata:
@@ -12,16 +18,19 @@ spec:
       containers:
         - name: gorrashop-frontend
           env:
+            # Apaga OTel SDK
             - name: OBSERVABILITY_ENABLED
               value: "false"
             - name: NEXT_PUBLIC_OBSERVABILITY_ENABLED
               value: "false"
+            # ── RUM ──
             - name: DD_RUM_ENABLED
               value: "true"
             - name: DD_RUM_APPLICATION_ID
               value: "9f61ea6a-521f-47d2-a889-c432c20c2809"
             - name: DD_RUM_CLIENT_TOKEN
               value: "pub3ff63f3b479550cca4f2daac63d724de"
+            # ── Unified Service Tags ──
             - name: DD_ENV
               value: "scenario-4-sdk"
             - name: DD_SERVICE
@@ -32,9 +41,11 @@ spec:
               value: "scenario:4,pipeline:dd-sdk"
             - name: DD_TRACE_SAMPLE_RATE
               value: "1.0"
+            # ── Source Code Integration ──
             - name: DD_GIT_COMMIT_SHA
               value: "879150c2b0500c20335c69e6756680ab200ae731"
             - name: DD_GIT_REPOSITORY_URL
               value: "https://github.com/samgarcia-ddog/Datadog---Opentelemetry---DDOT"
+            # Code Origin — habilitado pero Next.js no lo soporta aún
             - name: DD_CODE_ORIGIN_FOR_SPANS_ENABLED
               value: "true"
